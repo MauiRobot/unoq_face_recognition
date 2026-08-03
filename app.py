@@ -3,8 +3,9 @@
 import atexit
 
 import cv2
-from flask import Flask, Response, render_template
+from flask import Flask, Response, jsonify, render_template
 
+import config
 from camera import Camera
 
 
@@ -54,6 +55,52 @@ def video_feed():
     )
 
 
+@app.route("/capture", methods=["POST"])
+def capture():
+    raw_frame = camera.get_latest_raw_frame()
+    face_crop = camera.get_latest_face_crop()
+
+    if raw_frame is None:
+        return jsonify(
+            success=False,
+            message="No camera frame is available yet.",
+        ), 503
+
+    if face_crop is None:
+        return jsonify(
+            success=False,
+            message="No face is currently detected.",
+        ), 400
+
+    config.CAPTURED_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    frame_saved = cv2.imwrite(
+        str(config.FRAME_IMAGE),
+        raw_frame,
+    )
+
+    face_saved = cv2.imwrite(
+        str(config.FACE_IMAGE),
+        face_crop,
+    )
+
+    if not frame_saved or not face_saved:
+        return jsonify(
+            success=False,
+            message="Unable to save the captured images.",
+        ), 500
+
+    return jsonify(
+        success=True,
+        message="Face captured successfully.",
+        frame_file=str(config.FRAME_IMAGE),
+        face_file=str(config.FACE_IMAGE),
+    )
+
+
 @atexit.register
 def shutdown():
     camera.release()
@@ -61,8 +108,9 @@ def shutdown():
 
 if __name__ == "__main__":
     print("Arduino UNO Q Face Recognition")
-    print("Camera device: /dev/video2")
+    print(f"Camera device: {config.CAMERA_DEVICE}")
     print("Open http://192.168.4.124:5000")
+
     app.run(
         host="0.0.0.0",
         port=5000,

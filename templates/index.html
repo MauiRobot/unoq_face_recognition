@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0">
@@ -28,10 +29,10 @@
         }
 
         .card {
+            padding: 24px;
             background: white;
             border-radius: 14px;
-            padding: 24px;
-            box-shadow: 0 4px 18px rgba(0,0,0,.10);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
         }
 
         h1 {
@@ -45,16 +46,58 @@
 
         .camera-container {
             margin: 25px 0;
-            border-radius: 12px;
             overflow: hidden;
             background: black;
             border: 1px solid #d0d0d0;
+            border-radius: 12px;
         }
 
         .camera-stream {
             display: block;
             width: 100%;
             height: auto;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin: 20px 0 10px;
+        }
+
+        .capture-button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #087ea4;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .capture-button:hover {
+            background: #066987;
+        }
+
+        .capture-button:disabled {
+            background: #9aa0a6;
+            cursor: not-allowed;
+        }
+
+        .capture-status {
+            min-height: 24px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .capture-status.success {
+            color: #16803c;
+        }
+
+        .capture-status.error {
+            color: #b3261e;
         }
 
         h2 {
@@ -75,11 +118,10 @@
 
         .status-value {
             font-weight: bold;
-            color: #0a8a2a;
+            color: #16803c;
         }
 
-        @media (max-width:700px) {
-
+        @media (max-width: 700px) {
             body {
                 padding: 12px;
             }
@@ -92,60 +134,112 @@
                 font-size: 24px;
             }
 
+            .capture-button {
+                width: 100%;
+            }
         }
-
     </style>
-
 </head>
 
 <body>
+    <main class="container">
+        <section class="card">
+            <h1>Arduino UNO Q Face Recognition</h1>
 
-<div class="container">
+            <p>
+                Live camera, face detection, and face capture.
+            </p>
 
-<div class="card">
+            <div class="camera-container">
+                <img
+                    class="camera-stream"
+                    src="{{ url_for('video_feed') }}"
+                    alt="Live camera stream">
+            </div>
 
-<h1>Arduino UNO Q Face Recognition</h1>
+            <div class="controls">
+                <button
+                    id="captureButton"
+                    class="capture-button"
+                    type="button">
+                    Capture Face
+                </button>
+            </div>
 
-<p>
-Live camera test using Flask and OpenCV.
-</p>
+            <div
+                id="captureStatus"
+                class="capture-status"
+                aria-live="polite">
+            </div>
 
-<div class="camera-container">
+            <h2>System Status</h2>
 
-<img
-    class="camera-stream"
-    src="{{ url_for('video_feed') }}"
-    alt="Live Camera">
+            <div class="status-row">
+                <span>Camera</span>
+                <span class="status-value">
+                    {{ camera_status }}
+                </span>
+            </div>
 
-</div>
+            <div class="status-row">
+                <span>Flask</span>
+                <span class="status-value">
+                    {{ flask_status }}
+                </span>
+            </div>
 
-<h2>System Status</h2>
+            <div class="status-row">
+                <span>OpenCV</span>
+                <span class="status-value">
+                    {{ opencv_status }}
+                </span>
+            </div>
+        </section>
+    </main>
 
-<div class="status-row">
-    <span>Camera</span>
-    <span class="status-value">
-        {{ camera_status }}
-    </span>
-</div>
+    <script>
+        const captureButton = document.getElementById("captureButton");
+        const captureStatus = document.getElementById("captureStatus");
 
-<div class="status-row">
-    <span>Flask</span>
-    <span class="status-value">
-        {{ flask_status }}
-    </span>
-</div>
+        async function captureFace() {
+            captureButton.disabled = true;
+            captureStatus.className = "capture-status";
+            captureStatus.textContent = "Capturing face...";
 
-<div class="status-row">
-    <span>OpenCV</span>
-    <span class="status-value">
-        {{ opencv_status }}
-    </span>
-</div>
+            try {
+                const response = await fetch("/capture", {
+                    method: "POST",
+                });
 
-</div>
+                const result = await response.json();
 
-</div>
+                if (!response.ok || !result.success) {
+                    throw new Error(
+                        result.message || "Face capture failed."
+                    );
+                }
 
+                captureStatus.className =
+                    "capture-status success";
+
+                captureStatus.textContent =
+                    result.message;
+            } catch (error) {
+                captureStatus.className =
+                    "capture-status error";
+
+                captureStatus.textContent =
+                    error.message;
+            } finally {
+                captureButton.disabled = false;
+            }
+        }
+
+        captureButton.addEventListener(
+            "click",
+            captureFace
+        );
+    </script>
 </body>
 
 </html>

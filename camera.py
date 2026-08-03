@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 
+import threading
 import time
 
 import cv2
 
+import config
+
 
 class Camera:
-    def __init__(
-        self,
-        device: str = "/dev/video2",
-        width: int = 640,
-        height: int = 480,
-    ):
-        self.device = device
+    def __init__(self):
+        self.device = config.CAMERA_DEVICE
+
         self.cap = cv2.VideoCapture(
             self.device,
             cv2.CAP_V4L2,
@@ -25,33 +24,37 @@ class Camera:
 
         self.cap.set(
             cv2.CAP_PROP_FRAME_WIDTH,
-            width,
+            config.FRAME_WIDTH,
         )
         self.cap.set(
             cv2.CAP_PROP_FRAME_HEIGHT,
-            height,
-        )
-
-        cascade_path = (
-            "/usr/share/opencv4/haarcascades/"
-            "haarcascade_frontalface_default.xml"
+            config.FRAME_HEIGHT,
         )
 
         self.face_detector = cv2.CascadeClassifier(
-            cascade_path
+            config.HAAR_CASCADE
         )
 
         if self.face_detector.empty():
             self.cap.release()
             raise RuntimeError(
-                f"Unable to load Haar cascade: {cascade_path}"
+                f"Unable to load Haar cascade: "
+                f"{config.HAAR_CASCADE}"
             )
 
         self.last_frame_time = time.perf_counter()
         self.smoothed_fps = 0.0
 
+        self.frame_lock = threading.Lock()
+        self.last_raw_frame = None
+        self.last_face_crop = None
+        self.last_face_box = None
+
         print(f"Camera opened: {self.device}")
-        print(f"Face detector loaded: {cascade_path}")
+        print(
+            "Face detector loaded: "
+            f"{config.HAAR_CASCADE}"
+        )
 
     def get_frame(self):
         frame_start = time.perf_counter()
@@ -60,6 +63,8 @@ class Camera:
 
         if not ok or frame is None:
             return None
+
+        raw_frame = frame.copy()
 
         gray = cv2.cvtColor(
             frame,
@@ -79,7 +84,22 @@ class Camera:
 
         detection_end = time.perf_counter()
 
-        for x, y, width, height in faces:
+        largest_face = None
+        largest_face_box = None
+
+        if len(faces) > 0:
+            largest_face_box = max(
+                faces,
+                key=lambda item: item[2] * item[3],
+            )
+
+            x, y, width, height = largest_face_box
+
+            largest_face = raw_frame[
+                y:y + height,
+                x:x + width,
+            ].copy()
+
             cv2.rectangle(
                 frame,
                 (x, y),
@@ -99,8 +119,15 @@ class Camera:
                 cv2.LINE_AA,
             )
 
+        with self.frame_lock:
+            self.last_raw_frame = raw_frame
+            self.last_face_crop = largest_face
+            self.last_face_box = largest_face_box
+
         now = time.perf_counter()
-        elapsed_since_last_frame = now - self.last_frame_time
+        elapsed_since_last_frame = (
+            now - self.last_frame_time
+        )
         self.last_frame_time = now
 
         instantaneous_fps = (
@@ -125,11 +152,15 @@ class Camera:
             time.perf_counter() - frame_start
         ) * 1000.0
 
+        detected_face_count = (
+            1 if largest_face is not None else 0
+        )
+
         metrics = [
             f"FPS: {self.smoothed_fps:.1f}",
             f"Frame: {processing_ms:.1f} ms",
             f"Detect: {detection_ms:.1f} ms",
-            f"Faces: {len(faces)}",
+            f"Faces: {detected_face_count}",
         ]
 
         y_position = 28
@@ -149,6 +180,24 @@ class Camera:
             y_position += 26
 
         return frame
+
+    def get_latest_raw_frame(self):
+        with self.frame_lock:
+            if self.last_raw_frame is None:
+                return None
+
+            return self.last_raw_frame.copy()
+
+    def get_latest_face_crop(self):
+        with self.frame_lock:
+            if self.last_face_crop is None:
+                return None
+
+            return self.last_face_crop.copy()
+
+    def has_detected_face(self):
+        with self.frame_lock:
+            return self.last_face_crop is not None
 
     def release(self):
         if self.cap is not None:
