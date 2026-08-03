@@ -22,7 +22,6 @@
             --primary-hover: #066987;
             --success: #16803c;
             --error: #b3261e;
-            --warning: #a45c00;
             --shadow: 0 8px 28px rgba(20, 35, 50, 0.09);
         }
 
@@ -35,10 +34,7 @@
             min-height: 100vh;
             background: var(--page-bg);
             color: var(--text-main);
-            font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
         }
 
         .page {
@@ -92,7 +88,7 @@
             display: grid;
             grid-template-columns:
                 minmax(0, 2fr)
-                minmax(260px, 1fr);
+                minmax(280px, 1fr);
             gap: 22px;
             align-items: start;
         }
@@ -159,23 +155,15 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition:
-                background 0.15s ease,
-                transform 0.15s ease;
         }
 
         .capture-button:hover {
             background: var(--primary-hover);
         }
 
-        .capture-button:active {
-            transform: translateY(1px);
-        }
-
         .capture-button:disabled {
             background: #9aa5af;
             cursor: wait;
-            transform: none;
         }
 
         .capture-feedback {
@@ -208,6 +196,35 @@
         .side-column {
             display: grid;
             gap: 22px;
+        }
+
+        .preview-body {
+            padding: 16px;
+        }
+
+        .preview-container {
+            display: grid;
+            place-items: center;
+            min-height: 220px;
+            overflow: hidden;
+            background: #101417;
+            border: 1px solid #2d363d;
+            border-radius: 12px;
+        }
+
+        .captured-preview {
+            display: block;
+            max-width: 100%;
+            max-height: 280px;
+            object-fit: contain;
+        }
+
+        .preview-placeholder {
+            padding: 24px;
+            color: #b7c0c8;
+            font-size: 14px;
+            line-height: 1.5;
+            text-align: center;
         }
 
         .status-list {
@@ -283,7 +300,7 @@
             text-align: center;
         }
 
-        @media (max-width: 850px) {
+        @media (max-width: 900px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
@@ -291,6 +308,10 @@
             .side-column {
                 grid-template-columns:
                     repeat(2, minmax(0, 1fr));
+            }
+
+            .side-column .preview-panel {
+                grid-column: 1 / -1;
             }
         }
 
@@ -312,16 +333,16 @@
                 grid-template-columns: 1fr;
             }
 
+            .side-column .preview-panel {
+                grid-column: auto;
+            }
+
             .capture-area {
                 grid-template-columns: 1fr;
             }
 
             .capture-button {
                 width: 100%;
-            }
-
-            .capture-feedback {
-                min-height: 44px;
             }
 
             .panel-header {
@@ -400,6 +421,36 @@
             </section>
 
             <aside class="side-column">
+                <section class="panel preview-panel">
+                    <header class="panel-header">
+                        <h2 class="panel-title">
+                            Captured Face Preview
+                        </h2>
+
+                        <p class="panel-description">
+                            The latest captured face appears here.
+                        </p>
+                    </header>
+
+                    <div class="preview-body">
+                        <div class="preview-container">
+                            <img
+                                id="capturedPreview"
+                                class="captured-preview"
+                                src="{% if preview_available %}{{ url_for('captured_face') }}?v=initial{% endif %}"
+                                alt="Captured face preview"
+                                {% if not preview_available %}hidden{% endif %}>
+
+                            <div
+                                id="previewPlaceholder"
+                                class="preview-placeholder"
+                                {% if preview_available %}hidden{% endif %}>
+                                No face has been captured yet.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="panel">
                     <header class="panel-header">
                         <h2 class="panel-title">
@@ -409,30 +460,21 @@
 
                     <div class="status-list">
                         <div class="status-row">
-                            <span class="status-label">
-                                Camera
-                            </span>
-
+                            <span class="status-label">Camera</span>
                             <span class="status-value">
                                 {{ camera_status }}
                             </span>
                         </div>
 
                         <div class="status-row">
-                            <span class="status-label">
-                                Web server
-                            </span>
-
+                            <span class="status-label">Web server</span>
                             <span class="status-value">
                                 {{ flask_status }}
                             </span>
                         </div>
 
                         <div class="status-row">
-                            <span class="status-label">
-                                OpenCV
-                            </span>
-
+                            <span class="status-label">OpenCV</span>
                             <span class="status-value">
                                 {{ opencv_status }}
                             </span>
@@ -462,10 +504,7 @@
                             <div class="step-number">1</div>
 
                             <div>
-                                <p class="step-title">
-                                    Detect
-                                </p>
-
+                                <p class="step-title">Detect</p>
                                 <p class="step-text">
                                     Wait for the green face box.
                                 </p>
@@ -476,12 +515,9 @@
                             <div class="step-number">2</div>
 
                             <div>
-                                <p class="step-title">
-                                    Capture
-                                </p>
-
+                                <p class="step-title">Capture</p>
                                 <p class="step-text">
-                                    Save the current frame and face crop.
+                                    Save the current face crop.
                                 </p>
                             </div>
                         </div>
@@ -490,12 +526,20 @@
                             <div class="step-number">3</div>
 
                             <div>
-                                <p class="step-title">
-                                    Enroll
-                                </p>
-
+                                <p class="step-title">Review</p>
                                 <p class="step-text">
-                                    Naming and permanent enrollment are next.
+                                    Check the captured-face preview.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-step">
+                            <div class="step-number">4</div>
+
+                            <div>
+                                <p class="step-title">Enroll</p>
+                                <p class="step-text">
+                                    Naming and permanent saving are next.
                                 </p>
                             </div>
                         </div>
@@ -515,6 +559,12 @@
 
         const captureStatus =
             document.getElementById("captureStatus");
+
+        const capturedPreview =
+            document.getElementById("capturedPreview");
+
+        const previewPlaceholder =
+            document.getElementById("previewPlaceholder");
 
         async function captureFace() {
             captureButton.disabled = true;
@@ -542,6 +592,16 @@
                         "Face capture failed."
                     );
                 }
+
+                const cacheBuster = Date.now();
+
+                capturedPreview.src =
+                    result.preview_url +
+                    "?v=" +
+                    cacheBuster;
+
+                capturedPreview.hidden = false;
+                previewPlaceholder.hidden = true;
 
                 captureStatus.className =
                     "capture-feedback success";

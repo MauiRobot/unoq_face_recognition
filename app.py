@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 
 import atexit
+from pathlib import Path
 
 import cv2
-from flask import Flask, Response, jsonify, render_template
+from flask import (
+    Flask,
+    Response,
+    jsonify,
+    render_template,
+    send_file,
+)
 
 import config
 from camera import Camera
@@ -20,13 +27,13 @@ def generate_frames():
         if frame is None:
             continue
 
-        ok, jpeg = cv2.imencode(
+        encoded, jpeg = cv2.imencode(
             ".jpg",
             frame,
             [cv2.IMWRITE_JPEG_QUALITY, 80],
         )
 
-        if not ok:
+        if not encoded:
             continue
 
         yield (
@@ -44,6 +51,7 @@ def index():
         camera_status="Streaming",
         flask_status="Running",
         opencv_status="Loaded",
+        preview_available=config.FACE_IMAGE.exists(),
     )
 
 
@@ -96,9 +104,33 @@ def capture():
     return jsonify(
         success=True,
         message="Face captured successfully.",
-        frame_file=str(config.FRAME_IMAGE),
-        face_file=str(config.FACE_IMAGE),
+        preview_url="/captured_face",
     )
+
+
+@app.route("/captured_face")
+def captured_face():
+    face_file = Path(config.FACE_IMAGE)
+
+    if not face_file.exists():
+        return jsonify(
+            success=False,
+            message="No captured face is available.",
+        ), 404
+
+    response = send_file(
+        face_file,
+        mimetype="image/jpeg",
+        conditional=False,
+    )
+
+    response.headers["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, max-age=0"
+    )
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
+    return response
 
 
 @atexit.register
