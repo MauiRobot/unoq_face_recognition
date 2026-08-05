@@ -1,8 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
     <title>Arduino UNO Q Face Recognition</title>
 
     <style>
@@ -16,13 +21,15 @@
             --primary: #087ea4;
             --primary-hover: #066987;
             --secondary: #e7edf2;
+            --danger: #b3261e;
+            --danger-hover: #8f1e18;
             --success: #16803c;
-            --error: #b3261e;
-            --warning: #9a6200;
             --shadow: 0 8px 28px rgba(20, 35, 50, 0.09);
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             margin: 0;
@@ -32,10 +39,13 @@
             font-family: Arial, Helvetica, sans-serif;
         }
 
-        button, input { font: inherit; }
+        button,
+        input {
+            font: inherit;
+        }
 
         .page {
-            width: min(1220px, calc(100% - 32px));
+            width: min(1180px, calc(100% - 32px));
             margin: 0 auto;
             padding: 26px 0 40px;
         }
@@ -58,44 +68,31 @@
             color: var(--muted);
         }
 
-        .badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 8px;
             padding: 9px 13px;
+            color: var(--success);
+            background: #e8f5ed;
+            border: 1px solid #b9dec7;
             border-radius: 999px;
             font-size: 14px;
             font-weight: bold;
         }
 
-        .online {
-            background: #e8f5ed;
-            color: var(--success);
-            border: 1px solid #b9dec7;
-        }
-
-        .mode {
-            background: #e6f2f7;
-            color: var(--primary);
-            border: 1px solid #b9d9e5;
-        }
-
         .dot {
             width: 9px;
             height: 9px;
-            border-radius: 50%;
             background: currentColor;
+            border-radius: 50%;
         }
 
-        .top-grid {
+        .main-grid {
             display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+            grid-template-columns:
+                minmax(0, 1.65fr)
+                minmax(300px, 0.85fr);
             gap: 22px;
             align-items: start;
         }
@@ -129,7 +126,9 @@
             line-height: 1.45;
         }
 
-        .panel-body { padding: 16px; }
+        .panel-body {
+            padding: 16px;
+        }
 
         .camera-container {
             overflow: hidden;
@@ -156,8 +155,8 @@
         }
 
         .button {
-            min-height: 46px;
-            padding: 11px 18px;
+            min-height: 44px;
+            padding: 10px 17px;
             border: none;
             border-radius: 9px;
             font-weight: bold;
@@ -165,16 +164,30 @@
         }
 
         .button-primary {
-            background: var(--primary);
             color: white;
+            background: var(--primary);
         }
 
-        .button-primary:hover { background: var(--primary-hover); }
+        .button-primary:hover {
+            background: var(--primary-hover);
+        }
 
         .button-secondary {
-            background: var(--secondary);
             color: var(--text);
+            background: var(--secondary);
             border: 1px solid var(--border);
+        }
+
+        .button-danger {
+            min-height: 36px;
+            padding: 7px 12px;
+            color: white;
+            background: var(--danger);
+            font-size: 13px;
+        }
+
+        .button-danger:hover {
+            background: var(--danger-hover);
         }
 
         .button:disabled {
@@ -183,135 +196,36 @@
         }
 
         .feedback {
-            min-height: 46px;
+            min-height: 44px;
             display: flex;
             align-items: center;
             padding: 10px 13px;
-            background: var(--soft);
             color: var(--muted);
+            background: var(--soft);
             border: 1px solid var(--border);
             border-radius: 9px;
             font-size: 14px;
+            line-height: 1.4;
         }
 
         .feedback.success {
-            background: #edf8f1;
             color: var(--success);
+            background: #edf8f1;
             border-color: #b9dec7;
             font-weight: bold;
         }
 
         .feedback.error {
+            color: var(--danger);
             background: #fff0ef;
-            color: var(--error);
             border-color: #efc0bc;
             font-weight: bold;
-        }
-
-        .status-list {
-            padding: 7px 19px 11px;
-        }
-
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 13px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .status-row:last-child { border-bottom: none; }
-
-        .status-label {
-            color: var(--muted);
-            font-size: 14px;
-        }
-
-        .status-value {
-            color: var(--success);
-            font-size: 14px;
-            font-weight: bold;
-            text-align: right;
-        }
-
-        .recognition-name {
-            display: block;
-            padding: 15px;
-            margin-bottom: 12px;
-            background: var(--soft);
-            border: 1px solid var(--border);
-            border-radius: 11px;
-            text-align: center;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .recognition-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .metric {
-            padding: 12px;
-            background: var(--soft);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-        }
-
-        .metric-label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .metric-value {
-            font-size: 17px;
-            font-weight: bold;
-        }
-
-        .result-card {
-            grid-column: 1 / -1;
-            text-align: center;
-        }
-
-        .result-card.authorized {
-            background: #edf8f1;
-            color: var(--success);
-            border-color: #b9dec7;
-        }
-
-        .result-card.unknown,
-        .result-card.error {
-            background: #fff0ef;
-            color: var(--error);
-            border-color: #efc0bc;
-        }
-
-        .result-card.waiting,
-        .result-card.model-not-ready {
-            background: #fff7e8;
-            color: var(--warning);
-            border-color: #ead3a4;
-        }
-
-        .enrollment-panel,
-        .event-panel {
-            margin-top: 22px;
-        }
-
-        .enrollment-grid {
-            display: grid;
-            grid-template-columns: minmax(220px, 0.8fr) minmax(300px, 1.2fr);
-            gap: 20px;
-            padding: 18px;
         }
 
         .preview-container {
             display: grid;
             place-items: center;
-            min-height: 245px;
+            min-height: 220px;
             overflow: hidden;
             background: #101417;
             border: 1px solid #2d363d;
@@ -321,7 +235,7 @@
         .captured-preview {
             display: block;
             max-width: 100%;
-            max-height: 300px;
+            max-height: 260px;
             object-fit: contain;
         }
 
@@ -333,14 +247,14 @@
 
         .form-label {
             display: block;
-            margin-bottom: 7px;
+            margin: 15px 0 7px;
             font-size: 14px;
             font-weight: bold;
         }
 
         .name-input {
             width: 100%;
-            min-height: 46px;
+            min-height: 44px;
             padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 9px;
@@ -357,11 +271,11 @@
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 12px;
-            margin: 16px 0;
+            margin: 14px 0;
         }
 
         .stat-card {
-            padding: 13px;
+            padding: 12px;
             background: var(--soft);
             border: 1px solid var(--border);
             border-radius: 10px;
@@ -375,8 +289,51 @@
         }
 
         .stat-value {
-            font-size: 20px;
+            font-size: 19px;
             font-weight: bold;
+        }
+
+        .people-list {
+            padding: 7px 16px 12px;
+        }
+
+        .person-row {
+            display: grid;
+            grid-template-columns:
+                minmax(0, 1fr)
+                auto
+                auto;
+            gap: 12px;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .person-row:last-child {
+            border-bottom: none;
+        }
+
+        .person-name {
+            overflow: hidden;
+            font-weight: bold;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .person-count {
+            color: var(--muted);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .empty-state {
+            padding: 24px 8px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .event-panel {
+            margin-top: 22px;
         }
 
         .event-list {
@@ -400,12 +357,6 @@
             font-family: monospace;
         }
 
-        .empty-events {
-            padding: 22px 0;
-            color: var(--muted);
-            text-align: center;
-        }
-
         .footer {
             margin-top: 22px;
             color: var(--muted);
@@ -414,15 +365,14 @@
         }
 
         @media (max-width: 900px) {
-            .top-grid,
-            .enrollment-grid {
+            .main-grid {
                 grid-template-columns: 1fr;
             }
         }
 
         @media (max-width: 620px) {
             .page {
-                width: min(100% - 20px, 1220px);
+                width: min(100% - 20px, 1180px);
                 padding-top: 16px;
             }
 
@@ -430,23 +380,33 @@
                 display: block;
             }
 
-            .badges {
+            .badge {
                 margin-top: 14px;
             }
 
             .capture-area,
-            .recognition-grid,
             .stats,
             .enrollment-buttons {
                 grid-template-columns: 1fr;
             }
 
-            .result-card {
-                grid-column: auto;
-            }
-
             .button {
                 width: 100%;
+            }
+
+            .person-row {
+                grid-template-columns: 1fr auto;
+            }
+
+            .person-count {
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            .person-row .button-danger {
+                grid-column: 2;
+                grid-row: 1 / 3;
+                width: auto;
             }
         }
     </style>
@@ -456,31 +416,30 @@
     <main class="page">
         <header class="page-header">
             <div>
-                <h1 class="page-title">Arduino UNO Q Face Recognition</h1>
+                <h1 class="page-title">
+                    Arduino UNO Q Face Recognition
+                </h1>
+
                 <p class="page-subtitle">
-                    Single-face enrollment and live recognition system
+                    Live recognition, enrollment, and people management
                 </p>
             </div>
 
-            <div class="badges">
-                <div class="badge online">
-                    <span class="dot"></span>
-                    System online
-                </div>
-
-                <div class="badge mode">
-                    <span class="dot"></span>
-                    Recognition active
-                </div>
+            <div class="badge">
+                <span class="dot"></span>
+                System online
             </div>
         </header>
 
-        <div class="top-grid">
+        <div class="main-grid">
             <section class="panel">
                 <header class="panel-header">
-                    <h2 class="panel-title">Live Camera</h2>
+                    <h2 class="panel-title">
+                        Live Camera
+                    </h2>
+
                     <p class="panel-description">
-                        Detection and recognition run automatically.
+                        Recognition details remain visible in the video overlay.
                     </p>
                 </header>
 
@@ -510,202 +469,194 @@
                 </div>
             </section>
 
-            <div class="side-stack">
+            <aside class="side-stack">
                 <section class="panel">
                     <header class="panel-header">
-                        <h2 class="panel-title">Live Recognition</h2>
+                        <h2 class="panel-title">
+                            Enrollment
+                        </h2>
+
                         <p class="panel-description">
-                            Lower LBPH distance means a stronger match.
+                            Capture, review, name, and save.
                         </p>
                     </header>
 
                     <div class="panel-body">
-                        <span id="recognizedName" class="recognition-name">—</span>
+                        <div class="preview-container">
+                            <img
+                                id="capturedPreview"
+                                class="captured-preview"
+                                src="{% if preview_available %}{{ url_for('captured_face') }}?v=initial{% endif %}"
+                                alt="Captured face preview"
+                                {% if not preview_available %}hidden{% endif %}>
 
-                        <div class="recognition-grid">
-                            <div class="metric">
-                                <span class="metric-label">LBPH distance</span>
-                                <span id="recognitionDistance" class="metric-value">—</span>
+                            <div
+                                id="previewPlaceholder"
+                                class="preview-placeholder"
+                                {% if preview_available %}hidden{% endif %}>
+                                No face has been captured yet.
                             </div>
+                        </div>
 
-                            <div class="metric">
-                                <span class="metric-label">Unknown threshold</span>
-                                <span id="recognitionThreshold" class="metric-value">
-                                    {{ "%.2f"|format(recognition_threshold) }}
+                        <label
+                            class="form-label"
+                            for="personName">
+                            Person name
+                        </label>
+
+                        <input
+                            id="personName"
+                            class="name-input"
+                            type="text"
+                            maxlength="60"
+                            autocomplete="name"
+                            placeholder="Enter a name">
+
+                        <div class="stats">
+                            <div class="stat-card">
+                                <span class="stat-label">
+                                    Person
+                                </span>
+
+                                <span
+                                    id="currentPerson"
+                                    class="stat-value">
+                                    —
                                 </span>
                             </div>
 
-                            <div class="metric">
-                                <span class="metric-label">Enrolled people</span>
-                                <span id="recognitionPeople" class="metric-value">
-                                    {{ recognition_people }}
+                            <div class="stat-card">
+                                <span class="stat-label">
+                                    Saved images
                                 </span>
-                            </div>
 
-                            <div id="accessStatus" class="metric result-card waiting">
-                                <span class="metric-label">Result</span>
-                                <span id="recognitionResult" class="metric-value">
-                                    {% if recognition_ready %}WAITING{% else %}MODEL NOT READY{% endif %}
+                                <span
+                                    id="imageCount"
+                                    class="stat-value">
+                                    0
                                 </span>
                             </div>
+                        </div>
+
+                        <div class="enrollment-buttons">
+                            <button
+                                id="savePersonButton"
+                                class="button button-primary"
+                                type="button">
+                                Save Person
+                            </button>
+
+                            <button
+                                id="retakeButton"
+                                class="button button-secondary"
+                                type="button">
+                                Retake
+                            </button>
+                        </div>
+
+                        <div
+                            id="enrollmentStatus"
+                            class="feedback"
+                            aria-live="polite">
+                            Capture a face, then enter a name.
                         </div>
                     </div>
                 </section>
 
                 <section class="panel">
                     <header class="panel-header">
-                        <h2 class="panel-title">System Status</h2>
+                        <h2 class="panel-title">
+                            Enrolled People
+                        </h2>
+
+                        <p class="panel-description">
+                            Removing someone deletes their enrolled images
+                            and immediately rebuilds the recognition model.
+                        </p>
                     </header>
 
-                    <div class="status-list">
-                        <div class="status-row">
-                            <span class="status-label">Camera</span>
-                            <span class="status-value">{{ camera_status }}</span>
-                        </div>
-
-                        <div class="status-row">
-                            <span class="status-label">Detection</span>
-                            <span class="status-value">Active</span>
-                        </div>
-
-                        <div class="status-row">
-                            <span class="status-label">Recognition</span>
-                            <span id="recognitionSystemStatus" class="status-value">
-                                {% if recognition_ready %}Active{% else %}Model not ready{% endif %}
-                            </span>
-                        </div>
-
-                        <div class="status-row">
-                            <span class="status-label">Web server</span>
-                            <span class="status-value">{{ flask_status }}</span>
-                        </div>
-
-                        <div class="status-row">
-                            <span class="status-label">OpenCV</span>
-                            <span class="status-value">{{ opencv_status }}</span>
+                    <div
+                        id="peopleList"
+                        class="people-list">
+                        <div class="empty-state">
+                            Loading enrolled people...
                         </div>
                     </div>
                 </section>
-            </div>
+            </aside>
         </div>
-
-        <section class="panel enrollment-panel">
-            <header class="panel-header">
-                <h2 class="panel-title">Enrollment</h2>
-                <p class="panel-description">
-                    Capture, review, name, and save. The model retrains after every save.
-                </p>
-            </header>
-
-            <div class="enrollment-grid">
-                <div class="preview-container">
-                    <img
-                        id="capturedPreview"
-                        class="captured-preview"
-                        src="{% if preview_available %}{{ url_for('captured_face') }}?v=initial{% endif %}"
-                        alt="Captured face preview"
-                        {% if not preview_available %}hidden{% endif %}>
-
-                    <div
-                        id="previewPlaceholder"
-                        class="preview-placeholder"
-                        {% if preview_available %}hidden{% endif %}>
-                        No face has been captured yet.
-                    </div>
-                </div>
-
-                <div>
-                    <label class="form-label" for="personName">Person name</label>
-
-                    <input
-                        id="personName"
-                        class="name-input"
-                        type="text"
-                        maxlength="60"
-                        autocomplete="name"
-                        placeholder="Enter a name">
-
-                    <div class="stats">
-                        <div class="stat-card">
-                            <span class="stat-label">Person</span>
-                            <span id="currentPerson" class="stat-value">—</span>
-                        </div>
-
-                        <div class="stat-card">
-                            <span class="stat-label">Saved images</span>
-                            <span id="imageCount" class="stat-value">0</span>
-                        </div>
-                    </div>
-
-                    <div class="enrollment-buttons">
-                        <button
-                            id="savePersonButton"
-                            class="button button-primary"
-                            type="button">
-                            Save Person
-                        </button>
-
-                        <button
-                            id="retakeButton"
-                            class="button button-secondary"
-                            type="button">
-                            Retake
-                        </button>
-                    </div>
-
-                    <div
-                        id="enrollmentStatus"
-                        class="feedback"
-                        aria-live="polite">
-                        Capture a face, then enter a name.
-                    </div>
-                </div>
-            </div>
-        </section>
 
         <section class="panel event-panel">
             <header class="panel-header">
-                <h2 class="panel-title">Event Log</h2>
+                <h2 class="panel-title">
+                    Event Log
+                </h2>
             </header>
 
-            <div id="eventList" class="event-list">
-                <div class="empty-events">No events yet.</div>
+            <div
+                id="eventList"
+                class="event-list">
+                <div class="empty-state">
+                    No events yet.
+                </div>
             </div>
         </section>
 
         <footer class="footer">
-            Arduino UNO Q • OpenCV • Flask • LBPH • v0.8
+            Arduino UNO Q • OpenCV • Flask • LBPH • v0.9
         </footer>
     </main>
 
     <script>
-        const captureButton = document.getElementById("captureButton");
-        const captureStatus = document.getElementById("captureStatus");
-        const capturedPreview = document.getElementById("capturedPreview");
-        const previewPlaceholder = document.getElementById("previewPlaceholder");
-        const personName = document.getElementById("personName");
-        const currentPerson = document.getElementById("currentPerson");
-        const imageCount = document.getElementById("imageCount");
-        const savePersonButton = document.getElementById("savePersonButton");
-        const retakeButton = document.getElementById("retakeButton");
-        const enrollmentStatus = document.getElementById("enrollmentStatus");
-        const eventList = document.getElementById("eventList");
-        const recognizedName = document.getElementById("recognizedName");
-        const recognitionDistance = document.getElementById("recognitionDistance");
-        const recognitionThreshold = document.getElementById("recognitionThreshold");
-        const recognitionPeople = document.getElementById("recognitionPeople");
-        const recognitionResult = document.getElementById("recognitionResult");
-        const accessStatus = document.getElementById("accessStatus");
-        const recognitionSystemStatus = document.getElementById("recognitionSystemStatus");
+        const captureButton =
+            document.getElementById("captureButton");
 
-        const savedName = localStorage.getItem("unoqPersonName");
+        const captureStatus =
+            document.getElementById("captureStatus");
+
+        const capturedPreview =
+            document.getElementById("capturedPreview");
+
+        const previewPlaceholder =
+            document.getElementById("previewPlaceholder");
+
+        const personName =
+            document.getElementById("personName");
+
+        const currentPerson =
+            document.getElementById("currentPerson");
+
+        const imageCount =
+            document.getElementById("imageCount");
+
+        const savePersonButton =
+            document.getElementById("savePersonButton");
+
+        const retakeButton =
+            document.getElementById("retakeButton");
+
+        const enrollmentStatus =
+            document.getElementById("enrollmentStatus");
+
+        const peopleList =
+            document.getElementById("peopleList");
+
+        const eventList =
+            document.getElementById("eventList");
+
+        const savedName =
+            localStorage.getItem("unoqPersonName");
 
         if (savedName) {
             personName.value = savedName;
             updatePersonStatus();
         }
 
-        function showFeedback(element, message, type = "") {
+        function showFeedback(
+            element,
+            message,
+            type = ""
+        ) {
             element.className = "feedback";
 
             if (type) {
@@ -718,18 +669,33 @@
         async function captureFace() {
             captureButton.disabled = true;
             captureButton.textContent = "Capturing...";
-            showFeedback(captureStatus, "Capturing the current detected face...");
+
+            showFeedback(
+                captureStatus,
+                "Capturing the current detected face..."
+            );
 
             try {
-                const response = await fetch("/capture", { method: "POST" });
+                const response = await fetch(
+                    "/capture",
+                    {
+                        method: "POST",
+                    }
+                );
+
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
-                    throw new Error(result.message || "Face capture failed.");
+                    throw new Error(
+                        result.message ||
+                        "Face capture failed."
+                    );
                 }
 
                 capturedPreview.src =
-                    result.preview_url + "?v=" + Date.now();
+                    result.preview_url +
+                    "?v=" +
+                    Date.now();
 
                 capturedPreview.hidden = false;
                 previewPlaceholder.hidden = true;
@@ -768,6 +734,7 @@
                     "Enter a person name.",
                     "error"
                 );
+
                 personName.focus();
                 return;
             }
@@ -783,20 +750,34 @@
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({ name: name }),
+                        body: JSON.stringify({
+                            name: name,
+                        }),
                     }
                 );
 
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
-                    throw new Error(result.message || "Enrollment failed.");
+                    throw new Error(
+                        result.message ||
+                        "Enrollment failed."
+                    );
                 }
 
-                personName.value = result.person_name;
-                localStorage.setItem("unoqPersonName", result.person_name);
-                currentPerson.textContent = result.person_name;
-                imageCount.textContent = result.image_count;
+                personName.value =
+                    result.person_name;
+
+                localStorage.setItem(
+                    "unoqPersonName",
+                    result.person_name
+                );
+
+                currentPerson.textContent =
+                    result.person_name;
+
+                imageCount.textContent =
+                    result.image_count;
 
                 showFeedback(
                     enrollmentStatus,
@@ -804,14 +785,16 @@
                     "success"
                 );
 
+                await loadPeople();
                 await loadEvents();
-                await loadRecognitionStatus();
+
             } catch (error) {
                 showFeedback(
                     enrollmentStatus,
                     "Save failed: " + error.message,
                     "error"
                 );
+
             } finally {
                 savePersonButton.disabled = false;
                 savePersonButton.textContent = "Save Person";
@@ -821,23 +804,33 @@
         async function retakeFace() {
             retakeButton.disabled = true;
             retakeButton.textContent = "Retaking...";
+
             showFeedback(
                 enrollmentStatus,
                 "Capturing a replacement face..."
             );
 
             try {
-                const response = await fetch("/capture", { method: "POST" });
+                const response = await fetch(
+                    "/capture",
+                    {
+                        method: "POST",
+                    }
+                );
+
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
                     throw new Error(
-                        result.message || "Unable to retake the face."
+                        result.message ||
+                        "Unable to retake the face."
                     );
                 }
 
                 capturedPreview.src =
-                    result.preview_url + "?v=" + Date.now();
+                    result.preview_url +
+                    "?v=" +
+                    Date.now();
 
                 capturedPreview.hidden = false;
                 previewPlaceholder.hidden = true;
@@ -855,12 +848,14 @@
                 );
 
                 await loadEvents();
+
             } catch (error) {
                 showFeedback(
                     enrollmentStatus,
                     "Retake failed: " + error.message,
                     "error"
                 );
+
             } finally {
                 retakeButton.disabled = false;
                 retakeButton.textContent = "Retake";
@@ -878,51 +873,141 @@
 
             try {
                 const response = await fetch(
-                    "/person_status?name=" + encodeURIComponent(name)
+                    "/person_status?name=" +
+                    encodeURIComponent(name)
                 );
 
                 const result = await response.json();
 
-                currentPerson.textContent = result.person_name || name;
-                imageCount.textContent = result.image_count || 0;
+                currentPerson.textContent =
+                    result.person_name || name;
+
+                imageCount.textContent =
+                    result.image_count || 0;
+
             } catch {
                 currentPerson.textContent = name;
             }
         }
 
-        function resultClass(result) {
-            return result.toLowerCase().replaceAll(" ", "-");
-        }
-
-        async function loadRecognitionStatus() {
+        async function loadPeople() {
             try {
                 const response = await fetch(
-                    "/recognition_status?time=" + Date.now()
+                    "/people?time=" + Date.now()
+                );
+
+                const result = await response.json();
+                const people = result.people || [];
+
+                if (people.length === 0) {
+                    peopleList.innerHTML =
+                        '<div class="empty-state">' +
+                        "No enrolled people." +
+                        "</div>";
+                    return;
+                }
+
+                peopleList.innerHTML = people
+                    .map(
+                        (person) =>
+                            '<div class="person-row">' +
+                                '<span class="person-name">' +
+                                    escapeHtml(person.name) +
+                                "</span>" +
+                                '<span class="person-count">' +
+                                    person.image_count +
+                                    (
+                                        person.image_count === 1
+                                            ? " image"
+                                            : " images"
+                                    ) +
+                                "</span>" +
+                                '<button class="button button-danger" ' +
+                                    'type="button" data-person="' +
+                                    escapeAttribute(person.name) +
+                                    '">' +
+                                    "Remove" +
+                                "</button>" +
+                            "</div>"
+                    )
+                    .join("");
+
+            } catch {
+                peopleList.innerHTML =
+                    '<div class="empty-state">' +
+                    "Unable to load enrolled people." +
+                    "</div>";
+            }
+        }
+
+        async function removePerson(name, button) {
+            const confirmed = window.confirm(
+                "Remove " +
+                name +
+                " and all of their enrolled images?"
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = "Removing...";
+
+            try {
+                const response = await fetch(
+                    "/remove_person",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                        }),
+                    }
                 );
 
                 const result = await response.json();
 
-                recognizedName.textContent = result.name || "—";
+                if (!response.ok || !result.success) {
+                    throw new Error(
+                        result.message ||
+                        "Unable to remove person."
+                    );
+                }
 
-                recognitionDistance.textContent =
-                    result.distance === null
-                        ? "—"
-                        : Number(result.distance).toFixed(2);
+                if (
+                    personName.value.trim().toLowerCase() ===
+                    name.toLowerCase()
+                ) {
+                    personName.value = "";
+                    currentPerson.textContent = "—";
+                    imageCount.textContent = "0";
 
-                recognitionThreshold.textContent =
-                    Number(result.threshold).toFixed(2);
+                    localStorage.removeItem(
+                        "unoqPersonName"
+                    );
+                }
 
-                recognitionPeople.textContent = result.people ?? 0;
-                recognitionResult.textContent = result.result || "WAITING";
+                showFeedback(
+                    enrollmentStatus,
+                    "✓ " + result.message,
+                    "success"
+                );
 
-                accessStatus.className =
-                    "metric result-card " +
-                    resultClass(result.result || "WAITING");
+                await loadPeople();
+                await loadEvents();
 
-                recognitionSystemStatus.textContent =
-                    result.ready ? "Active" : "Model not ready";
-            } catch {
-                recognitionSystemStatus.textContent = "Unavailable";
+            } catch (error) {
+                showFeedback(
+                    enrollmentStatus,
+                    "Remove failed: " + error.message,
+                    "error"
+                );
+
+                button.disabled = false;
+                button.textContent = "Remove";
             }
         }
 
@@ -937,7 +1022,9 @@
 
                 if (events.length === 0) {
                     eventList.innerHTML =
-                        '<div class="empty-events">No events yet.</div>';
+                        '<div class="empty-state">' +
+                        "No events yet." +
+                        "</div>";
                     return;
                 }
 
@@ -945,24 +1032,34 @@
                     .map(
                         (event) =>
                             '<div class="event-row">' +
-                            '<span class="event-time">' +
-                            event.time +
-                            "</span>" +
-                            "<span>" +
-                            escapeHtml(event.message) +
-                            "</span>" +
+                                '<span class="event-time">' +
+                                    event.time +
+                                "</span>" +
+                                "<span>" +
+                                    escapeHtml(event.message) +
+                                "</span>" +
                             "</div>"
                     )
                     .join("");
+
             } catch {
-                // Keep the current event list.
+                // Keep the existing event list.
             }
         }
 
         function escapeHtml(value) {
-            const element = document.createElement("div");
+            const element =
+                document.createElement("div");
+
             element.textContent = value;
+
             return element.innerHTML;
+        }
+
+        function escapeAttribute(value) {
+            return escapeHtml(value)
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
         }
 
         let nameUpdateTimer;
@@ -971,18 +1068,56 @@
             "input",
             () => {
                 clearTimeout(nameUpdateTimer);
-                nameUpdateTimer = setTimeout(updatePersonStatus, 300);
+
+                nameUpdateTimer = setTimeout(
+                    updatePersonStatus,
+                    300
+                );
             }
         );
 
-        captureButton.addEventListener("click", captureFace);
-        savePersonButton.addEventListener("click", savePerson);
-        retakeButton.addEventListener("click", retakeFace);
+        peopleList.addEventListener(
+            "click",
+            (event) => {
+                const button =
+                    event.target.closest(
+                        "button[data-person]"
+                    );
 
-        loadRecognitionStatus();
+                if (!button) {
+                    return;
+                }
+
+                removePerson(
+                    button.dataset.person,
+                    button
+                );
+            }
+        );
+
+        captureButton.addEventListener(
+            "click",
+            captureFace
+        );
+
+        savePersonButton.addEventListener(
+            "click",
+            savePerson
+        );
+
+        retakeButton.addEventListener(
+            "click",
+            retakeFace
+        );
+
+        loadPeople();
         loadEvents();
 
-        setInterval(loadRecognitionStatus, 500);
-        setInterval(loadEvents, 3000);
+        setInterval(
+            loadEvents,
+            3000
+        );
     </script>
 </body>
+
+</html>

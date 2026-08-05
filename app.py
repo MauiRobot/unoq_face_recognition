@@ -2,25 +2,19 @@
 
 import atexit
 import re
+import shutil
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
 
 import cv2
-from flask import (
-    Flask,
-    Response,
-    jsonify,
-    render_template,
-    request,
-    send_file,
-)
+from flask import Flask, Response, jsonify, render_template, request, send_file
 
 import config
 from camera import Camera
 from gpio_output import GPIOOutput
-from recognition import FaceRecognitionEngine
+from recognition import FaceRecognitionEngine, LABELS_FILE, MODEL_FILE
 
 
 GPIO_TEST_LINE = 41
@@ -92,21 +86,14 @@ def get_cooldown_remaining() -> float:
     with trigger_lock:
         elapsed = time.monotonic() - last_trigger_time
 
-    return max(
-        0.0,
-        TRIGGER_COOLDOWN_SECONDS - elapsed,
-    )
+    return max(0.0, TRIGGER_COOLDOWN_SECONDS - elapsed)
 
 
 def get_recognition_status() -> dict[str, object]:
     with recognition_lock:
         status = latest_recognition.copy()
 
-    status["cooldown_remaining"] = round(
-        get_cooldown_remaining(),
-        1,
-    )
-
+    status["cooldown_remaining"] = round(get_cooldown_remaining(), 1)
     status["gpio_active"] = (
         gpio_output.is_active()
         if gpio_output is not None
@@ -117,6 +104,34 @@ def get_recognition_status() -> dict[str, object]:
         status["leds"] = gpio_output.get_status()
 
     return status
+
+
+def reset_recognition_model() -> None:
+    global recognition_engine
+
+    with recognition_lock:
+        recognition_engine = FaceRecognitionEngine()
+
+        latest_recognition.update(
+            {
+                "ready": False,
+                "face_detected": False,
+                "name": "—",
+                "distance": None,
+                "threshold": recognition_engine.threshold,
+                "result": "MODEL NOT READY",
+                "people": 0,
+                "updated_at": datetime.now().strftime("%H:%M:%S"),
+            }
+        )
+
+    for model_path in (MODEL_FILE, LABELS_FILE):
+        try:
+            model_path.unlink(missing_ok=True)
+        except OSError as error:
+            add_event(
+                f"Unable to delete model file {model_path.name}: {error}"
+            )
 
 
 def load_recognition_model() -> bool:
@@ -139,10 +154,8 @@ def load_recognition_model() -> bool:
             )
 
         add_event(
-            "Recognition model loaded "
-            f"({engine_status['people']} people)"
+            f"Recognition model loaded ({engine_status['people']} people)"
         )
-
         return True
 
     except RuntimeError as error:
@@ -154,7 +167,6 @@ def load_recognition_model() -> bool:
             result="MODEL NOT READY",
             people=0,
         )
-
         add_event(f"Recognition unavailable: {error}")
         return False
 
@@ -180,6 +192,86 @@ def retrain_recognition_model() -> int:
     return image_count
 
 
+def person_display_name(folder_name: str) -> str:
+    return folder_name.replace("_", " ")
+
+
+def count_person_images(person_dir: Path) -> int:
+    return sum(1 for path in person_dir.glob("*.jpg"))
+
+
+def list_enrolled_people() -> list[dict[str, object]]:
+    if not config.FACES_DIR.exists():
+        return []
+
+    people: list[dict[str, object]] = []
+
+    for person_dir in sorted(
+        (
+            path
+            for path in config.FACES_DIR.iterdir()
+            if path.is_dir()
+        ),
+        key=lambda path: path.name.lower(),
+    ):
+        image_count = count_person_images(person_dir)
+
+        if image_count <= 0:
+            continue
+
+        people.append(
+            {
+                "name": person_display_name(person_dir.name),
+                "folder": person_dir.name,
+                "image_count": image_count,
+            }
+        )
+
+    return people
+
+
+def clean_person_name(name: str) -> str:
+    name = re.sub(r"[^A-Za-z0-9 _-]", "", name.strip())
+    name = re.sub(r"\s+", " ", name)
+    return name[:60].strip()
+
+
+def person_folder_name(person_name: str) -> str:
+    return person_name.replace(" ", "_")
+
+
+def resolve_person_directory(person_name: str) -> Path | None:
+    cleaned = clean_person_name(person_name)
+
+    if not cleaned:
+        return None
+
+    candidate = config.FACES_DIR / person_folder_name(cleaned)
+
+    try:
+        faces_root = config.FACES_DIR.resolve()
+        resolved = candidate.resolve()
+    except OSError:
+        return None
+
+    if resolved.parent != faces_root:
+        return None
+
+    return resolved
+
+
+def next_image_path(person_dir: Path) -> Path:
+    highest = 0
+
+    for image_path in person_dir.glob("*.jpg"):
+        try:
+            highest = max(highest, int(image_path.stem))
+        except ValueError:
+            continue
+
+    return person_dir / f"{highest + 1:04d}.jpg"
+
+
 def ensure_snapshot_directories() -> None:
     ACCEPTED_DIR.mkdir(parents=True, exist_ok=True)
     UNKNOWN_DIR.mkdir(parents=True, exist_ok=True)
@@ -188,10 +280,7 @@ def ensure_snapshot_directories() -> None:
 def jpeg_files_oldest_first(directory: Path) -> list[Path]:
     return sorted(
         directory.glob("*.jpg"),
-        key=lambda path: (
-            path.stat().st_mtime,
-            path.name,
-        ),
+        key=lambda path: (path.stat().st_mtime, path.name),
     )
 
 
@@ -203,39 +292,25 @@ def rotate_snapshot_directory(directory: Path) -> None:
 
         try:
             oldest.unlink()
-            add_event(
-                f"Deleted oldest snapshot: {oldest.name}"
-            )
+            add_event(f"Deleted oldest snapshot: {oldest.name}")
         except OSError as error:
             add_event(
-                f"Unable to delete old snapshot "
-                f"{oldest.name}: {error}"
+                f"Unable to delete old snapshot {oldest.name}: {error}"
             )
             break
 
 
 def safe_filename_component(value: str) -> str:
-    cleaned = re.sub(
-        r"[^A-Za-z0-9_-]",
-        "_",
-        value.strip(),
-    )
-
+    cleaned = re.sub(r"[^A-Za-z0-9_-]", "_", value.strip())
     return cleaned or "UNKNOWN"
 
 
-def draw_audit_overlay(
-    frame,
-    name: str,
-    distance: float,
-    result: str,
-):
+def draw_audit_overlay(frame, name: str, distance: float, result: str):
     output = frame.copy()
     height, width = output.shape[:2]
 
     panel_height = 112
     panel_top = max(0, height - panel_height)
-
     dark_panel = output.copy()
 
     cv2.rectangle(
@@ -255,11 +330,7 @@ def draw_audit_overlay(
         output,
     )
 
-    color = (
-        (0, 255, 0)
-        if result == "AUTHORIZED"
-        else (0, 0, 255)
-    )
+    color = (0, 255, 0) if result == "AUTHORIZED" else (0, 0, 255)
 
     cv2.putText(
         output,
@@ -276,8 +347,7 @@ def draw_audit_overlay(
         output,
         (
             f"Distance: {distance:.2f}   "
-            f"Threshold: "
-            f"{recognition_engine.threshold:.2f}   "
+            f"Threshold: {recognition_engine.threshold:.2f}   "
             f"{result}"
         ),
         (16, panel_top + 65),
@@ -342,7 +412,6 @@ def save_recognition_snapshot(
     add_event(
         f"Saved {category_name} snapshot: {destination.name}"
     )
-
     return destination
 
 
@@ -356,10 +425,7 @@ def trigger_action_if_ready(
     now = time.monotonic()
 
     with trigger_lock:
-        if (
-            now - last_trigger_time
-            < TRIGGER_COOLDOWN_SECONDS
-        ):
+        if now - last_trigger_time < TRIGGER_COOLDOWN_SECONDS:
             return
 
         last_trigger_time = now
@@ -376,17 +442,13 @@ def trigger_action_if_ready(
         add_event(f"Access accepted for {name}")
 
         if gpio_output is not None:
-            gpio_output.pulse_authorized(
-                GPIO_PULSE_SECONDS
-            )
+            gpio_output.pulse_authorized(GPIO_PULSE_SECONDS)
 
     else:
         add_event("Unknown face trigger")
 
         if gpio_output is not None:
-            gpio_output.pulse_unknown(
-                GPIO_PULSE_SECONDS
-            )
+            gpio_output.pulse_unknown(GPIO_PULSE_SECONDS)
 
 
 def recognition_worker() -> None:
@@ -402,11 +464,7 @@ def recognition_worker() -> None:
                 face_detected=False,
                 name="—",
                 distance=None,
-                result=(
-                    "WAITING"
-                    if model_ready
-                    else "MODEL NOT READY"
-                ),
+                result="WAITING" if model_ready else "MODEL NOT READY",
             )
 
         elif not model_ready:
@@ -421,8 +479,8 @@ def recognition_worker() -> None:
         else:
             try:
                 with recognition_lock:
-                    name, distance, matched = (
-                        recognition_engine.predict(face_crop)
+                    name, distance, matched = recognition_engine.predict(
+                        face_crop
                     )
 
                 result = "AUTHORIZED" if matched else "UNKNOWN"
@@ -450,12 +508,9 @@ def recognition_worker() -> None:
                     distance=None,
                     result="ERROR",
                 )
-
                 add_event(f"Recognition error: {error}")
 
-        recognition_stop_event.wait(
-            RECOGNITION_INTERVAL_SECONDS
-        )
+        recognition_stop_event.wait(RECOGNITION_INTERVAL_SECONDS)
 
 
 def draw_recognition_overlay(frame):
@@ -464,7 +519,6 @@ def draw_recognition_overlay(frame):
     height, width = frame.shape[:2]
     panel_height = 96
     panel_top = max(0, height - panel_height)
-
     overlay = frame.copy()
 
     cv2.rectangle(
@@ -580,49 +634,11 @@ def generate_frames():
         )
 
 
-def clean_person_name(name: str) -> str:
-    name = re.sub(
-        r"[^A-Za-z0-9 _-]",
-        "",
-        name.strip(),
-    )
-    name = re.sub(r"\s+", " ", name)
-    return name[:60].strip()
-
-
-def person_folder_name(person_name: str) -> str:
-    return person_name.replace(" ", "_")
-
-
-def next_image_path(person_dir: Path) -> Path:
-    highest = 0
-
-    for image_path in person_dir.glob("*.jpg"):
-        try:
-            highest = max(highest, int(image_path.stem))
-        except ValueError:
-            continue
-
-    return person_dir / f"{highest + 1:04d}.jpg"
-
-
-def count_person_images(person_dir: Path) -> int:
-    return sum(1 for path in person_dir.glob("*.jpg"))
-
-
 @app.route("/")
 def index():
-    status = get_recognition_status()
-
     return render_template(
         "index.html",
-        camera_status="Streaming",
-        flask_status="Running",
-        opencv_status="Loaded",
         preview_available=config.FACE_IMAGE.exists(),
-        recognition_ready=status["ready"],
-        recognition_threshold=status["threshold"],
-        recognition_people=status["people"],
     )
 
 
@@ -657,7 +673,6 @@ def capture():
         str(config.FRAME_IMAGE),
         raw_frame,
     )
-
     face_saved = cv2.imwrite(
         str(config.FACE_IMAGE),
         face_crop,
@@ -706,9 +721,7 @@ def captured_face():
 @app.route("/enroll", methods=["POST"])
 def enroll():
     data = request.get_json(silent=True) or {}
-    person_name = clean_person_name(
-        str(data.get("name", ""))
-    )
+    person_name = clean_person_name(str(data.get("name", "")))
 
     if not person_name:
         return jsonify(
@@ -724,10 +737,7 @@ def enroll():
 
     config.FACES_DIR.mkdir(parents=True, exist_ok=True)
 
-    person_dir = (
-        config.FACES_DIR
-        / person_folder_name(person_name)
-    )
+    person_dir = config.FACES_DIR / person_folder_name(person_name)
     person_dir.mkdir(parents=True, exist_ok=True)
 
     destination = next_image_path(person_dir)
@@ -759,16 +769,12 @@ def enroll():
             f"{error}"
         )
 
-    add_event(
-        f"Saved {person_name} "
-        f"(image {image_count})"
-    )
+    add_event(f"Saved {person_name} (image {image_count})")
 
     return jsonify(
         success=True,
         message=(
-            f"Saved {person_name} "
-            f"as image {image_count}."
+            f"Saved {person_name} as image {image_count}."
             f"{model_message}"
         ),
         person_name=person_name,
@@ -790,11 +796,7 @@ def person_status():
             image_count=0,
         )
 
-    person_dir = (
-        config.FACES_DIR
-        / person_folder_name(person_name)
-    )
-
+    person_dir = config.FACES_DIR / person_folder_name(person_name)
     image_count = (
         count_person_images(person_dir)
         if person_dir.exists()
@@ -805,6 +807,77 @@ def person_status():
         success=True,
         person_name=person_name,
         image_count=image_count,
+    )
+
+
+@app.route("/people")
+def people():
+    return jsonify(
+        success=True,
+        people=list_enrolled_people(),
+    )
+
+
+@app.route("/remove_person", methods=["POST"])
+def remove_person():
+    data = request.get_json(silent=True) or {}
+    person_name = clean_person_name(str(data.get("name", "")))
+    person_dir = resolve_person_directory(person_name)
+
+    if (
+        person_dir is None
+        or not person_dir.exists()
+        or not person_dir.is_dir()
+    ):
+        return jsonify(
+            success=False,
+            message="Enrolled person was not found.",
+        ), 404
+
+    image_count = count_person_images(person_dir)
+
+    try:
+        shutil.rmtree(person_dir)
+    except OSError as error:
+        return jsonify(
+            success=False,
+            message=f"Unable to remove {person_name}: {error}",
+        ), 500
+
+    remaining_people = list_enrolled_people()
+
+    if remaining_people:
+        try:
+            training_count = retrain_recognition_model()
+            model_message = (
+                " Recognition model rebuilt using "
+                f"{training_count} image(s)."
+            )
+        except Exception as error:
+            return jsonify(
+                success=False,
+                message=(
+                    f"{person_name} was removed, but "
+                    f"model retraining failed: {error}"
+                ),
+            ), 500
+    else:
+        reset_recognition_model()
+        model_message = (
+            " No enrolled people remain; recognition is now disabled."
+        )
+
+    add_event(
+        f"Removed {person_name} ({image_count} image(s))"
+    )
+
+    return jsonify(
+        success=True,
+        message=(
+            f"Removed {person_name} and {image_count} image(s)."
+            f"{model_message}"
+        ),
+        people=remaining_people,
     )
 
 
@@ -836,7 +909,6 @@ def shutdown():
 
 if __name__ == "__main__":
     add_event("Application started")
-
     ensure_snapshot_directories()
 
     gpio_output = GPIOOutput(
@@ -867,14 +939,8 @@ if __name__ == "__main__":
         f"{TRIGGER_COOLDOWN_SECONDS:.1f} seconds"
     )
     print(
-        f"Status LED pulse: "
-        f"{GPIO_PULSE_SECONDS:.1f} seconds"
-    )
-    print(
         "LED mapping: "
-        "green=authorized, "
-        "red=unknown, "
-        "blue=heartbeat"
+        "green=authorized, red=unknown, blue=heartbeat"
     )
     print("Open http://192.168.4.124:5000")
 
