@@ -1,48 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arduino UNO Q Face Recognition</title>
 
     <style>
         :root {
             --page-bg: #eef2f6;
             --panel-bg: #ffffff;
-            --panel-soft: #f7f9fb;
-            --text-main: #1f2933;
-            --text-muted: #66727f;
+            --soft: #f7f9fb;
+            --text: #1f2933;
+            --muted: #66727f;
             --border: #d9e0e7;
             --primary: #087ea4;
             --primary-hover: #066987;
             --secondary: #e7edf2;
-            --secondary-hover: #d8e1e8;
             --success: #16803c;
             --error: #b3261e;
+            --warning: #9a6200;
             --shadow: 0 8px 28px rgba(20, 35, 50, 0.09);
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
             min-height: 100vh;
             background: var(--page-bg);
-            color: var(--text-main);
+            color: var(--text);
             font-family: Arial, Helvetica, sans-serif;
         }
 
-        button,
-        input {
-            font: inherit;
-        }
+        button, input { font: inherit; }
 
         .page {
             width: min(1220px, calc(100% - 32px));
@@ -61,19 +51,16 @@
         .page-title {
             margin: 0;
             font-size: clamp(25px, 4vw, 36px);
-            line-height: 1.15;
         }
 
         .page-subtitle {
             margin: 8px 0 0;
-            color: var(--text-muted);
-            font-size: 16px;
+            color: var(--muted);
         }
 
-        .header-badges {
+        .badges {
             display: flex;
             flex-wrap: wrap;
-            justify-content: flex-end;
             gap: 10px;
         }
 
@@ -87,37 +74,35 @@
             font-weight: bold;
         }
 
-        .online-badge {
+        .online {
             background: #e8f5ed;
             color: var(--success);
             border: 1px solid #b9dec7;
         }
 
-        .mode-badge {
+        .mode {
             background: #e6f2f7;
             color: var(--primary);
             border: 1px solid #b9d9e5;
         }
 
-        .badge-dot {
+        .dot {
             width: 9px;
             height: 9px;
             border-radius: 50%;
-        }
-
-        .online-badge .badge-dot {
-            background: var(--success);
-        }
-
-        .mode-badge .badge-dot {
-            background: var(--primary);
+            background: currentColor;
         }
 
         .top-grid {
             display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+            grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
             gap: 22px;
             align-items: start;
+        }
+
+        .side-stack {
+            display: grid;
+            gap: 22px;
         }
 
         .panel {
@@ -139,14 +124,12 @@
 
         .panel-description {
             margin: 6px 0 0;
-            color: var(--text-muted);
+            color: var(--muted);
             font-size: 14px;
             line-height: 1.45;
         }
 
-        .video-panel-body {
-            padding: 16px;
-        }
+        .panel-body { padding: 16px; }
 
         .camera-container {
             overflow: hidden;
@@ -183,21 +166,15 @@
 
         .button-primary {
             background: var(--primary);
-            color: #ffffff;
+            color: white;
         }
 
-        .button-primary:hover {
-            background: var(--primary-hover);
-        }
+        .button-primary:hover { background: var(--primary-hover); }
 
         .button-secondary {
             background: var(--secondary);
-            color: var(--text-main);
+            color: var(--text);
             border: 1px solid var(--border);
-        }
-
-        .button-secondary:hover {
-            background: var(--secondary-hover);
         }
 
         .button:disabled {
@@ -210,12 +187,11 @@
             display: flex;
             align-items: center;
             padding: 10px 13px;
-            background: var(--panel-soft);
-            color: var(--text-muted);
+            background: var(--soft);
+            color: var(--muted);
             border: 1px solid var(--border);
             border-radius: 9px;
             font-size: 14px;
-            line-height: 1.4;
         }
 
         .feedback.success {
@@ -239,18 +215,15 @@
         .status-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             gap: 16px;
             padding: 13px 0;
             border-bottom: 1px solid var(--border);
         }
 
-        .status-row:last-child {
-            border-bottom: none;
-        }
+        .status-row:last-child { border-bottom: none; }
 
         .status-label {
-            color: var(--text-muted);
+            color: var(--muted);
             font-size: 14px;
         }
 
@@ -261,7 +234,70 @@
             text-align: right;
         }
 
-        .enrollment-panel {
+        .recognition-name {
+            display: block;
+            padding: 15px;
+            margin-bottom: 12px;
+            background: var(--soft);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .recognition-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .metric {
+            padding: 12px;
+            background: var(--soft);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .metric-label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .metric-value {
+            font-size: 17px;
+            font-weight: bold;
+        }
+
+        .result-card {
+            grid-column: 1 / -1;
+            text-align: center;
+        }
+
+        .result-card.authorized {
+            background: #edf8f1;
+            color: var(--success);
+            border-color: #b9dec7;
+        }
+
+        .result-card.unknown,
+        .result-card.error {
+            background: #fff0ef;
+            color: var(--error);
+            border-color: #efc0bc;
+        }
+
+        .result-card.waiting,
+        .result-card.model-not-ready {
+            background: #fff7e8;
+            color: var(--warning);
+            border-color: #ead3a4;
+        }
+
+        .enrollment-panel,
+        .event-panel {
             margin-top: 22px;
         }
 
@@ -292,13 +328,7 @@
         .preview-placeholder {
             padding: 24px;
             color: #b7c0c8;
-            font-size: 14px;
-            line-height: 1.5;
             text-align: center;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
         }
 
         .form-label {
@@ -312,8 +342,6 @@
             width: 100%;
             min-height: 46px;
             padding: 10px 12px;
-            color: var(--text-main);
-            background: #ffffff;
             border: 1px solid var(--border);
             border-radius: 9px;
             outline: none;
@@ -324,16 +352,17 @@
             box-shadow: 0 0 0 3px rgba(8, 126, 164, 0.13);
         }
 
-        .enrollment-stats {
+        .stats,
+        .enrollment-buttons {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 12px;
-            margin-bottom: 16px;
+            margin: 16px 0;
         }
 
         .stat-card {
             padding: 13px;
-            background: var(--panel-soft);
+            background: var(--soft);
             border: 1px solid var(--border);
             border-radius: 10px;
         }
@@ -341,24 +370,13 @@
         .stat-label {
             display: block;
             margin-bottom: 5px;
-            color: var(--text-muted);
+            color: var(--muted);
             font-size: 12px;
         }
 
         .stat-value {
             font-size: 20px;
             font-weight: bold;
-        }
-
-        .enrollment-buttons {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
-        .event-panel {
-            margin-top: 22px;
         }
 
         .event-list {
@@ -377,33 +395,26 @@
             font-size: 14px;
         }
 
-        .event-row:last-child {
-            border-bottom: none;
-        }
-
         .event-time {
-            color: var(--text-muted);
+            color: var(--muted);
             font-family: monospace;
         }
 
         .empty-events {
             padding: 22px 0;
-            color: var(--text-muted);
+            color: var(--muted);
             text-align: center;
         }
 
         .footer {
             margin-top: 22px;
-            color: var(--text-muted);
+            color: var(--muted);
             font-size: 13px;
             text-align: center;
         }
 
         @media (max-width: 900px) {
-            .top-grid {
-                grid-template-columns: 1fr;
-            }
-
+            .top-grid,
             .enrollment-grid {
                 grid-template-columns: 1fr;
             }
@@ -419,31 +430,23 @@
                 display: block;
             }
 
-            .header-badges {
-                justify-content: flex-start;
+            .badges {
                 margin-top: 14px;
             }
 
-            .capture-area {
+            .capture-area,
+            .recognition-grid,
+            .stats,
+            .enrollment-buttons {
                 grid-template-columns: 1fr;
+            }
+
+            .result-card {
+                grid-column: auto;
             }
 
             .button {
                 width: 100%;
-            }
-
-            .enrollment-buttons,
-            .enrollment-stats {
-                grid-template-columns: 1fr;
-            }
-
-            .panel-header {
-                padding: 15px;
-            }
-
-            .video-panel-body,
-            .enrollment-grid {
-                padding: 12px;
             }
         }
     </style>
@@ -453,24 +456,21 @@
     <main class="page">
         <header class="page-header">
             <div>
-                <h1 class="page-title">
-                    Arduino UNO Q Face Recognition
-                </h1>
-
+                <h1 class="page-title">Arduino UNO Q Face Recognition</h1>
                 <p class="page-subtitle">
-                    Single-face enrollment and recognition system
+                    Single-face enrollment and live recognition system
                 </p>
             </div>
 
-            <div class="header-badges">
-                <div class="badge online-badge">
-                    <span class="badge-dot"></span>
+            <div class="badges">
+                <div class="badge online">
+                    <span class="dot"></span>
                     System online
                 </div>
 
-                <div class="badge mode-badge">
-                    <span class="badge-dot"></span>
-                    Enrollment mode
+                <div class="badge mode">
+                    <span class="dot"></span>
+                    Recognition active
                 </div>
             </div>
         </header>
@@ -478,16 +478,13 @@
         <div class="top-grid">
             <section class="panel">
                 <header class="panel-header">
-                    <h2 class="panel-title">
-                        Live Camera
-                    </h2>
-
+                    <h2 class="panel-title">Live Camera</h2>
                     <p class="panel-description">
-                        Wait for the green box before capturing.
+                        Detection and recognition run automatically.
                     </p>
                 </header>
 
-                <div class="video-panel-body">
+                <div class="panel-body">
                     <div class="camera-container">
                         <img
                             class="camera-stream"
@@ -513,93 +510,122 @@
                 </div>
             </section>
 
-            <aside class="panel">
-                <header class="panel-header">
-                    <h2 class="panel-title">
-                        System Status
-                    </h2>
-                </header>
+            <div class="side-stack">
+                <section class="panel">
+                    <header class="panel-header">
+                        <h2 class="panel-title">Live Recognition</h2>
+                        <p class="panel-description">
+                            Lower LBPH distance means a stronger match.
+                        </p>
+                    </header>
 
-                <div class="status-list">
-                    <div class="status-row">
-                        <span class="status-label">Camera</span>
-                        <span class="status-value">{{ camera_status }}</span>
-                    </div>
+                    <div class="panel-body">
+                        <span id="recognizedName" class="recognition-name">—</span>
 
-                    <div class="status-row">
-                        <span class="status-label">Detection</span>
-                        <span class="status-value">Active</span>
-                    </div>
+                        <div class="recognition-grid">
+                            <div class="metric">
+                                <span class="metric-label">LBPH distance</span>
+                                <span id="recognitionDistance" class="metric-value">—</span>
+                            </div>
 
-                    <div class="status-row">
-                        <span class="status-label">Recognition</span>
-                        <span class="status-value">Idle</span>
-                    </div>
+                            <div class="metric">
+                                <span class="metric-label">Unknown threshold</span>
+                                <span id="recognitionThreshold" class="metric-value">
+                                    {{ "%.2f"|format(recognition_threshold) }}
+                                </span>
+                            </div>
 
-                    <div class="status-row">
-                        <span class="status-label">Web server</span>
-                        <span class="status-value">{{ flask_status }}</span>
-                    </div>
+                            <div class="metric">
+                                <span class="metric-label">Enrolled people</span>
+                                <span id="recognitionPeople" class="metric-value">
+                                    {{ recognition_people }}
+                                </span>
+                            </div>
 
-                    <div class="status-row">
-                        <span class="status-label">OpenCV</span>
-                        <span class="status-value">{{ opencv_status }}</span>
+                            <div id="accessStatus" class="metric result-card waiting">
+                                <span class="metric-label">Result</span>
+                                <span id="recognitionResult" class="metric-value">
+                                    {% if recognition_ready %}WAITING{% else %}MODEL NOT READY{% endif %}
+                                </span>
+                            </div>
+                        </div>
                     </div>
+                </section>
 
-                    <div class="status-row">
-                        <span class="status-label">Face mode</span>
-                        <span class="status-value">Single</span>
+                <section class="panel">
+                    <header class="panel-header">
+                        <h2 class="panel-title">System Status</h2>
+                    </header>
+
+                    <div class="status-list">
+                        <div class="status-row">
+                            <span class="status-label">Camera</span>
+                            <span class="status-value">{{ camera_status }}</span>
+                        </div>
+
+                        <div class="status-row">
+                            <span class="status-label">Detection</span>
+                            <span class="status-value">Active</span>
+                        </div>
+
+                        <div class="status-row">
+                            <span class="status-label">Recognition</span>
+                            <span id="recognitionSystemStatus" class="status-value">
+                                {% if recognition_ready %}Active{% else %}Model not ready{% endif %}
+                            </span>
+                        </div>
+
+                        <div class="status-row">
+                            <span class="status-label">Web server</span>
+                            <span class="status-value">{{ flask_status }}</span>
+                        </div>
+
+                        <div class="status-row">
+                            <span class="status-label">OpenCV</span>
+                            <span class="status-value">{{ opencv_status }}</span>
+                        </div>
                     </div>
-                </div>
-            </aside>
+                </section>
+            </div>
         </div>
 
         <section class="panel enrollment-panel">
             <header class="panel-header">
                 <h2 class="panel-title">Enrollment</h2>
-
                 <p class="panel-description">
-                    Review the capture, enter a name, and save it permanently.
+                    Capture, review, name, and save. The model retrains after every save.
                 </p>
             </header>
 
             <div class="enrollment-grid">
-                <div>
-                    <div class="preview-container">
-                        <img
-                            id="capturedPreview"
-                            class="captured-preview"
-                            src="{% if preview_available %}{{ url_for('captured_face') }}?v=initial{% endif %}"
-                            alt="Captured face preview"
-                            {% if not preview_available %}hidden{% endif %}>
+                <div class="preview-container">
+                    <img
+                        id="capturedPreview"
+                        class="captured-preview"
+                        src="{% if preview_available %}{{ url_for('captured_face') }}?v=initial{% endif %}"
+                        alt="Captured face preview"
+                        {% if not preview_available %}hidden{% endif %}>
 
-                        <div
-                            id="previewPlaceholder"
-                            class="preview-placeholder"
-                            {% if preview_available %}hidden{% endif %}>
-                            No face has been captured yet.
-                        </div>
+                    <div
+                        id="previewPlaceholder"
+                        class="preview-placeholder"
+                        {% if preview_available %}hidden{% endif %}>
+                        No face has been captured yet.
                     </div>
                 </div>
 
                 <div>
-                    <div class="form-group">
-                        <label
-                            class="form-label"
-                            for="personName">
-                            Person name
-                        </label>
+                    <label class="form-label" for="personName">Person name</label>
 
-                        <input
-                            id="personName"
-                            class="name-input"
-                            type="text"
-                            maxlength="60"
-                            autocomplete="name"
-                            placeholder="Enter a name">
-                    </div>
+                    <input
+                        id="personName"
+                        class="name-input"
+                        type="text"
+                        maxlength="60"
+                        autocomplete="name"
+                        placeholder="Enter a name">
 
-                    <div class="enrollment-stats">
+                    <div class="stats">
                         <div class="stat-card">
                             <span class="stat-label">Person</span>
                             <span id="currentPerson" class="stat-value">—</span>
@@ -648,57 +674,38 @@
         </section>
 
         <footer class="footer">
-            Arduino UNO Q • OpenCV • Flask • v0.7
+            Arduino UNO Q • OpenCV • Flask • LBPH • v0.8
         </footer>
     </main>
 
     <script>
-        const captureButton =
-            document.getElementById("captureButton");
+        const captureButton = document.getElementById("captureButton");
+        const captureStatus = document.getElementById("captureStatus");
+        const capturedPreview = document.getElementById("capturedPreview");
+        const previewPlaceholder = document.getElementById("previewPlaceholder");
+        const personName = document.getElementById("personName");
+        const currentPerson = document.getElementById("currentPerson");
+        const imageCount = document.getElementById("imageCount");
+        const savePersonButton = document.getElementById("savePersonButton");
+        const retakeButton = document.getElementById("retakeButton");
+        const enrollmentStatus = document.getElementById("enrollmentStatus");
+        const eventList = document.getElementById("eventList");
+        const recognizedName = document.getElementById("recognizedName");
+        const recognitionDistance = document.getElementById("recognitionDistance");
+        const recognitionThreshold = document.getElementById("recognitionThreshold");
+        const recognitionPeople = document.getElementById("recognitionPeople");
+        const recognitionResult = document.getElementById("recognitionResult");
+        const accessStatus = document.getElementById("accessStatus");
+        const recognitionSystemStatus = document.getElementById("recognitionSystemStatus");
 
-        const captureStatus =
-            document.getElementById("captureStatus");
-
-        const capturedPreview =
-            document.getElementById("capturedPreview");
-
-        const previewPlaceholder =
-            document.getElementById("previewPlaceholder");
-
-        const personName =
-            document.getElementById("personName");
-
-        const currentPerson =
-            document.getElementById("currentPerson");
-
-        const imageCount =
-            document.getElementById("imageCount");
-
-        const savePersonButton =
-            document.getElementById("savePersonButton");
-
-        const retakeButton =
-            document.getElementById("retakeButton");
-
-        const enrollmentStatus =
-            document.getElementById("enrollmentStatus");
-
-        const eventList =
-            document.getElementById("eventList");
-
-        const savedName =
-            localStorage.getItem("unoqPersonName");
+        const savedName = localStorage.getItem("unoqPersonName");
 
         if (savedName) {
             personName.value = savedName;
             updatePersonStatus();
         }
 
-        function showFeedback(
-            element,
-            message,
-            type = ""
-        ) {
+        function showFeedback(element, message, type = "") {
             element.className = "feedback";
 
             if (type) {
@@ -711,33 +718,18 @@
         async function captureFace() {
             captureButton.disabled = true;
             captureButton.textContent = "Capturing...";
-
-            showFeedback(
-                captureStatus,
-                "Capturing the current detected face..."
-            );
+            showFeedback(captureStatus, "Capturing the current detected face...");
 
             try {
-                const response = await fetch(
-                    "/capture",
-                    {
-                        method: "POST",
-                    }
-                );
-
+                const response = await fetch("/capture", { method: "POST" });
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
-                    throw new Error(
-                        result.message ||
-                        "Face capture failed."
-                    );
+                    throw new Error(result.message || "Face capture failed.");
                 }
 
                 capturedPreview.src =
-                    result.preview_url +
-                    "?v=" +
-                    Date.now();
+                    result.preview_url + "?v=" + Date.now();
 
                 capturedPreview.hidden = false;
                 previewPlaceholder.hidden = true;
@@ -776,7 +768,6 @@
                     "Enter a person name.",
                     "error"
                 );
-
                 personName.focus();
                 return;
             }
@@ -792,34 +783,20 @@
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({
-                            name: name,
-                        }),
+                        body: JSON.stringify({ name: name }),
                     }
                 );
 
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
-                    throw new Error(
-                        result.message ||
-                        "Enrollment failed."
-                    );
+                    throw new Error(result.message || "Enrollment failed.");
                 }
 
-                personName.value =
-                    result.person_name;
-
-                localStorage.setItem(
-                    "unoqPersonName",
-                    result.person_name
-                );
-
-                currentPerson.textContent =
-                    result.person_name;
-
-                imageCount.textContent =
-                    result.image_count;
+                personName.value = result.person_name;
+                localStorage.setItem("unoqPersonName", result.person_name);
+                currentPerson.textContent = result.person_name;
+                imageCount.textContent = result.image_count;
 
                 showFeedback(
                     enrollmentStatus,
@@ -828,6 +805,7 @@
                 );
 
                 await loadEvents();
+                await loadRecognitionStatus();
             } catch (error) {
                 showFeedback(
                     enrollmentStatus,
@@ -843,33 +821,23 @@
         async function retakeFace() {
             retakeButton.disabled = true;
             retakeButton.textContent = "Retaking...";
-
             showFeedback(
                 enrollmentStatus,
                 "Capturing a replacement face..."
             );
 
             try {
-                const response = await fetch(
-                    "/capture",
-                    {
-                        method: "POST",
-                    }
-                );
-
+                const response = await fetch("/capture", { method: "POST" });
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
                     throw new Error(
-                        result.message ||
-                        "Unable to retake the face."
+                        result.message || "Unable to retake the face."
                     );
                 }
 
                 capturedPreview.src =
-                    result.preview_url +
-                    "?v=" +
-                    Date.now();
+                    result.preview_url + "?v=" + Date.now();
 
                 capturedPreview.hidden = false;
                 previewPlaceholder.hidden = true;
@@ -910,19 +878,51 @@
 
             try {
                 const response = await fetch(
-                    "/person_status?name=" +
-                    encodeURIComponent(name)
+                    "/person_status?name=" + encodeURIComponent(name)
                 );
 
                 const result = await response.json();
 
-                currentPerson.textContent =
-                    result.person_name || name;
-
-                imageCount.textContent =
-                    result.image_count || 0;
+                currentPerson.textContent = result.person_name || name;
+                imageCount.textContent = result.image_count || 0;
             } catch {
                 currentPerson.textContent = name;
+            }
+        }
+
+        function resultClass(result) {
+            return result.toLowerCase().replaceAll(" ", "-");
+        }
+
+        async function loadRecognitionStatus() {
+            try {
+                const response = await fetch(
+                    "/recognition_status?time=" + Date.now()
+                );
+
+                const result = await response.json();
+
+                recognizedName.textContent = result.name || "—";
+
+                recognitionDistance.textContent =
+                    result.distance === null
+                        ? "—"
+                        : Number(result.distance).toFixed(2);
+
+                recognitionThreshold.textContent =
+                    Number(result.threshold).toFixed(2);
+
+                recognitionPeople.textContent = result.people ?? 0;
+                recognitionResult.textContent = result.result || "WAITING";
+
+                accessStatus.className =
+                    "metric result-card " +
+                    resultClass(result.result || "WAITING");
+
+                recognitionSystemStatus.textContent =
+                    result.ready ? "Active" : "Model not ready";
+            } catch {
+                recognitionSystemStatus.textContent = "Unavailable";
             }
         }
 
@@ -937,10 +937,7 @@
 
                 if (events.length === 0) {
                     eventList.innerHTML =
-                        '<div class="empty-events">' +
-                        "No events yet." +
-                        "</div>";
-
+                        '<div class="empty-events">No events yet.</div>';
                     return;
                 }
 
@@ -948,26 +945,23 @@
                     .map(
                         (event) =>
                             '<div class="event-row">' +
-                                '<span class="event-time">' +
-                                    event.time +
-                                "</span>" +
-                                "<span>" +
-                                    escapeHtml(event.message) +
-                                "</span>" +
+                            '<span class="event-time">' +
+                            event.time +
+                            "</span>" +
+                            "<span>" +
+                            escapeHtml(event.message) +
+                            "</span>" +
                             "</div>"
                     )
                     .join("");
             } catch {
-                // Keep the existing event list visible.
+                // Keep the current event list.
             }
         }
 
         function escapeHtml(value) {
-            const element =
-                document.createElement("div");
-
+            const element = document.createElement("div");
             element.textContent = value;
-
             return element.innerHTML;
         }
 
@@ -977,36 +971,18 @@
             "input",
             () => {
                 clearTimeout(nameUpdateTimer);
-
-                nameUpdateTimer = setTimeout(
-                    updatePersonStatus,
-                    300
-                );
+                nameUpdateTimer = setTimeout(updatePersonStatus, 300);
             }
         );
 
-        captureButton.addEventListener(
-            "click",
-            captureFace
-        );
+        captureButton.addEventListener("click", captureFace);
+        savePersonButton.addEventListener("click", savePerson);
+        retakeButton.addEventListener("click", retakeFace);
 
-        savePersonButton.addEventListener(
-            "click",
-            savePerson
-        );
-
-        retakeButton.addEventListener(
-            "click",
-            retakeFace
-        );
-
+        loadRecognitionStatus();
         loadEvents();
 
-        setInterval(
-            loadEvents,
-            3000
-        );
+        setInterval(loadRecognitionStatus, 500);
+        setInterval(loadEvents, 3000);
     </script>
 </body>
-
-</html>
