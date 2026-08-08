@@ -269,7 +269,7 @@
         .stats,
         .enrollment-buttons {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
             margin: 14px 0;
         }
@@ -421,7 +421,7 @@
                 </h1>
 
                 <p class="page-subtitle">
-                    Live recognition, enrollment, and people management
+                    Arduino AI recognition, multi-image enrollment, and people management
                 </p>
             </div>
 
@@ -477,7 +477,7 @@
                         </h2>
 
                         <p class="panel-description">
-                            Capture, review, name, and save.
+                            Enter a name, then let the AI detector capture five good face images automatically.
                         </p>
                     </header>
 
@@ -536,6 +536,18 @@
                                     0
                                 </span>
                             </div>
+
+                            <div class="stat-card">
+                                <span class="stat-label">
+                                    AI enrollment
+                                </span>
+
+                                <span
+                                    id="enrollmentProgress"
+                                    class="stat-value">
+                                    0 / 5
+                                </span>
+                            </div>
                         </div>
 
                         <div class="enrollment-buttons">
@@ -543,14 +555,15 @@
                                 id="savePersonButton"
                                 class="button button-primary"
                                 type="button">
-                                Save Person
+                                Start AI Enrollment
                             </button>
 
                             <button
                                 id="retakeButton"
                                 class="button button-secondary"
-                                type="button">
-                                Retake
+                                type="button"
+                                disabled>
+                                Cancel Enrollment
                             </button>
                         </div>
 
@@ -558,7 +571,7 @@
                             id="enrollmentStatus"
                             class="feedback"
                             aria-live="polite">
-                            Capture a face, then enter a name.
+                            Enter a name and press Start AI Enrollment.
                         </div>
                     </div>
                 </section>
@@ -603,7 +616,7 @@
         </section>
 
         <footer class="footer">
-            Arduino UNO Q • OpenCV • Flask • LBPH • v0.9
+            Arduino UNO Q • Arduino AI Detector • OpenCV • Flask • LBPH • v1.0
         </footer>
     </main>
 
@@ -628,6 +641,9 @@
 
         const imageCount =
             document.getElementById("imageCount");
+
+        const enrollmentProgress =
+            document.getElementById("enrollmentProgress");
 
         const savePersonButton =
             document.getElementById("savePersonButton");
@@ -725,7 +741,7 @@
             }
         }
 
-        async function savePerson() {
+        async function startAiEnrollment() {
             const name = personName.value.trim();
 
             if (!name) {
@@ -740,11 +756,11 @@
             }
 
             savePersonButton.disabled = true;
-            savePersonButton.textContent = "Saving...";
+            savePersonButton.textContent = "Starting...";
 
             try {
                 const response = await fetch(
-                    "/enroll",
+                    "/enrollment/start",
                     {
                         method: "POST",
                         headers: {
@@ -752,6 +768,7 @@
                         },
                         body: JSON.stringify({
                             name: name,
+                            images: 5,
                         }),
                     }
                 );
@@ -761,58 +778,44 @@
                 if (!response.ok || !result.success) {
                     throw new Error(
                         result.message ||
-                        "Enrollment failed."
+                        "Unable to start AI enrollment."
                     );
                 }
 
-                personName.value =
-                    result.person_name;
-
                 localStorage.setItem(
                     "unoqPersonName",
-                    result.person_name
+                    name
                 );
 
-                currentPerson.textContent =
-                    result.person_name;
+                currentPerson.textContent = name;
 
-                imageCount.textContent =
-                    result.image_count;
-
-                showFeedback(
-                    enrollmentStatus,
-                    "✓ " + result.message,
-                    "success"
+                applyEnrollmentStatus(
+                    result.enrollment
                 );
 
-                await loadPeople();
                 await loadEvents();
 
             } catch (error) {
                 showFeedback(
                     enrollmentStatus,
-                    "Save failed: " + error.message,
+                    "Enrollment start failed: " +
+                    error.message,
                     "error"
                 );
 
-            } finally {
                 savePersonButton.disabled = false;
-                savePersonButton.textContent = "Save Person";
+                savePersonButton.textContent =
+                    "Start AI Enrollment";
             }
         }
 
-        async function retakeFace() {
+        async function cancelAiEnrollment() {
             retakeButton.disabled = true;
-            retakeButton.textContent = "Retaking...";
-
-            showFeedback(
-                enrollmentStatus,
-                "Capturing a replacement face..."
-            );
+            retakeButton.textContent = "Cancelling...";
 
             try {
                 const response = await fetch(
-                    "/capture",
+                    "/enrollment/cancel",
                     {
                         method: "POST",
                     }
@@ -823,28 +826,12 @@
                 if (!response.ok || !result.success) {
                     throw new Error(
                         result.message ||
-                        "Unable to retake the face."
+                        "Unable to cancel enrollment."
                     );
                 }
 
-                capturedPreview.src =
-                    result.preview_url +
-                    "?v=" +
-                    Date.now();
-
-                capturedPreview.hidden = false;
-                previewPlaceholder.hidden = true;
-
-                showFeedback(
-                    captureStatus,
-                    "✓ Replacement face captured.",
-                    "success"
-                );
-
-                showFeedback(
-                    enrollmentStatus,
-                    "✓ Preview replaced. Review it before saving.",
-                    "success"
+                applyEnrollmentStatus(
+                    result.enrollment
                 );
 
                 await loadEvents();
@@ -852,13 +839,119 @@
             } catch (error) {
                 showFeedback(
                     enrollmentStatus,
-                    "Retake failed: " + error.message,
+                    "Cancel failed: " +
+                    error.message,
                     "error"
                 );
 
-            } finally {
                 retakeButton.disabled = false;
-                retakeButton.textContent = "Retake";
+                retakeButton.textContent =
+                    "Cancel Enrollment";
+            }
+        }
+
+        function applyEnrollmentStatus(status) {
+            if (!status) {
+                return;
+            }
+
+            const saved =
+                Number(status.saved_images || 0);
+
+            const target =
+                Number(status.target_images || 5);
+
+            enrollmentProgress.textContent =
+                saved + " / " + target;
+
+            if (status.person_name) {
+                currentPerson.textContent =
+                    status.person_name;
+            }
+
+            if (status.active) {
+                savePersonButton.disabled = true;
+                savePersonButton.textContent =
+                    "AI Enrollment Running";
+
+                retakeButton.disabled = false;
+                retakeButton.textContent =
+                    "Cancel Enrollment";
+
+                showFeedback(
+                    enrollmentStatus,
+                    status.last_message ||
+                    "AI enrollment is running."
+                );
+
+                return;
+            }
+
+            savePersonButton.disabled = false;
+            savePersonButton.textContent =
+                "Start AI Enrollment";
+
+            retakeButton.disabled = true;
+            retakeButton.textContent =
+                "Cancel Enrollment";
+
+            const completed =
+                saved > 0 &&
+                saved >= target;
+
+            if (completed) {
+                showFeedback(
+                    enrollmentStatus,
+                    "✓ " + (
+                        status.last_message ||
+                        "AI enrollment completed."
+                    ),
+                    "success"
+                );
+            } else {
+                showFeedback(
+                    enrollmentStatus,
+                    status.last_message ||
+                    "Enter a name and press Start AI Enrollment."
+                );
+            }
+        }
+
+        async function loadEnrollmentStatus() {
+            try {
+                const response = await fetch(
+                    "/enrollment/status?time=" +
+                    Date.now()
+                );
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    return;
+                }
+
+                const wasActive =
+                    !savePersonButton.disabled;
+
+                applyEnrollmentStatus(
+                    result.enrollment
+                );
+
+                if (
+                    result.enrollment &&
+                    !result.enrollment.active &&
+                    Number(
+                        result.enrollment.saved_images || 0
+                    ) >= Number(
+                        result.enrollment.target_images || 5
+                    )
+                ) {
+                    await loadPeople();
+                    await updatePersonStatus();
+                }
+
+            } catch {
+                // Leave the current UI state unchanged.
             }
         }
 
@@ -1102,20 +1195,26 @@
 
         savePersonButton.addEventListener(
             "click",
-            savePerson
+            startAiEnrollment
         );
 
         retakeButton.addEventListener(
             "click",
-            retakeFace
+            cancelAiEnrollment
         );
 
         loadPeople();
         loadEvents();
+        loadEnrollmentStatus();
 
         setInterval(
             loadEvents,
             3000
+        );
+
+        setInterval(
+            loadEnrollmentStatus,
+            1000
         );
     </script>
 </body>
