@@ -1,0 +1,84 @@
+services:
+  ei-video-obj-detection-runner:
+    image: ghcr.io/arduino/app-bricks/ei-models-runner:0.11.2
+    pull_policy: never
+    container_name: unoq-face-ai-runner
+    entrypoint: ["/home/arduino/start-runner.sh"]
+    command:
+      - --model-file
+      - /models/ootb/ei/lw-face-det.eim
+      - --gst-source
+      - tcpserversrc host=0.0.0.0 port=5050 ! jpegdec
+      - --dont-print-predictions
+      - --preview-original-resolution
+    user: "1000:1000"
+    group_add: ["44", "29", "991", "20", "1001"]
+    environment:
+      APP_HOME: /home/arduino/ArduinoApps/test-of-face-detector-on-camera
+      BIND_ADDRESS: 0.0.0.0
+      BOARD_NAME: unoq
+      CUSTOM_MODEL_PATH: /home/arduino/.arduino-bricks/ei-models
+      EI_OBJ_DETECTION_MODEL: /models/ootb/ei/lw-face-det.eim
+      EI_V_OBJ_DETECTION_MODEL: /models/ootb/ei/lw-face-det.eim
+      HOST_IP: 192.168.4.124
+      MODELS_PATH: /var/lib/arduino-app-cli/models
+      VIDEO_DEVICE: /dev/video3
+    volumes:
+      - /home/arduino/.arduino-bricks/ei-models:/home/arduino/.arduino-bricks/ei-models
+      - /var/lib/arduino-app-cli/models/edge-impulse:/var/lib/arduino-app-cli/models/edge-impulse
+    ports:
+      - "4912:4912"
+    restart: unless-stopped
+    networks:
+      standalone_ai:
+        aliases: [ei-video-obj-detection-runner]
+
+  ai-camera-sender:
+    image: ghcr.io/arduino/app-bricks/python-apps-base:0.11.0
+    pull_policy: never
+    container_name: unoq-face-ai-camera
+    entrypoint: ["/run.sh"]
+    user: "1000:1000"
+    group_add: ["44", "29", "991", "20", "1001"]
+    device_cgroup_rules:
+      - "c 226:* rmw"
+      - "c 250:* rmw"
+      - "c 504:* rmw"
+      - "c 81:* rmw"
+      - "c 116:* rmw"
+    environment:
+      APP_HOME: /home/arduino/ArduinoApps/test-of-face-detector-on-camera
+      BIND_ADDRESS: 0.0.0.0
+      BOARD_NAME: unoq
+      CUSTOM_MODEL_PATH: /home/arduino/.arduino-bricks/ei-models
+      EI_OBJ_DETECTION_MODEL: /models/ootb/ei/lw-face-det.eim
+      EI_V_OBJ_DETECTION_MODEL: /models/ootb/ei/lw-face-det.eim
+      HOST_IP: 192.168.4.124
+      MODELS_PATH: /var/lib/arduino-app-cli/models
+      VIDEO_DEVICE: /dev/video3
+    volumes:
+      - /home/arduino/ArduinoApps/test-of-face-detector-on-camera:/app
+      - /dev:/dev
+      - /run/udev:/run/udev:ro
+      - /run/arduino-router.sock:/run/arduino-router.sock
+      - /dev/leds/builtin/led1_b:/dev/leds/builtin/led1_b
+      - /dev/leds/builtin/led1_g:/dev/leds/builtin/led1_g
+      - /dev/leds/builtin/led1_r:/dev/leds/builtin/led1_r
+      - /dev/leds/builtin/led2_b:/dev/leds/builtin/led2_b
+      - /dev/leds/builtin/led2_g:/dev/leds/builtin/led2_g
+      - /dev/leds/builtin/led2_r:/dev/leds/builtin/led2_r
+    extra_hosts:
+      - "msgpack-rpc-router:host-gateway"
+    ports:
+      - "7000:7000"
+    depends_on:
+      ei-video-obj-detection-runner:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      standalone_ai:
+        aliases: [main]
+
+networks:
+  standalone_ai:
+    name: unoq-face-standalone-ai
