@@ -1,0 +1,19 @@
+[Unit]
+Description=UNO Q Standalone AI Face Detector Runtime
+After=docker.service network-online.target unoq-face-recognition.service
+Wants=network-online.target
+Requires=docker.service unoq-face-recognition.service
+
+[Service]
+Type=oneshot
+User=arduino
+Group=arduino
+WorkingDirectory=/home/arduino/unoq_face_recognition
+ExecStart=/home/arduino/unoq_face_recognition/standalone-ai/start-ai.sh
+ExecStop=/home/arduino/unoq_face_recognition/standalone-ai/stop-ai.sh
+RemainAfterExit=yes
+TimeoutStartSec=120
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
