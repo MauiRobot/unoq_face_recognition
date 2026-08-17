@@ -1,6 +1,6 @@
 services:
   ei-video-obj-detection-runner:
-    image: ghcr.io/arduino/app-bricks/ei-models-runner:0.11.2
+    image: ghcr.io/arduino/app-bricks/ei-models-runner:0.12.1
     pull_policy: never
     container_name: unoq-face-ai-runner
     entrypoint: ["/home/arduino/start-runner.sh"]
@@ -22,7 +22,7 @@ services:
       EI_V_OBJ_DETECTION_MODEL: /models/ootb/ei/lw-face-det.eim
       HOST_IP: 192.168.4.124
       MODELS_PATH: /var/lib/arduino-app-cli/models
-      VIDEO_DEVICE: /dev/video3
+      VIDEO_DEVICE: /dev/video0
     volumes:
       - /home/arduino/.arduino-bricks/ei-models:/home/arduino/.arduino-bricks/ei-models
       - /var/lib/arduino-app-cli/models/edge-impulse:/var/lib/arduino-app-cli/models/edge-impulse
@@ -34,7 +34,7 @@ services:
         aliases: [ei-video-obj-detection-runner]
 
   ai-camera-sender:
-    image: ghcr.io/arduino/app-bricks/python-apps-base:0.11.0
+    image: ghcr.io/arduino/app-bricks/python-apps-base:0.12.0
     pull_policy: never
     container_name: unoq-face-ai-camera
     entrypoint: ["/run.sh"]
@@ -55,7 +55,7 @@ services:
       EI_V_OBJ_DETECTION_MODEL: /models/ootb/ei/lw-face-det.eim
       HOST_IP: 192.168.4.124
       MODELS_PATH: /var/lib/arduino-app-cli/models
-      VIDEO_DEVICE: /dev/video3
+      VIDEO_DEVICE: /dev/video0
     volumes:
       - /home/arduino/ArduinoApps/test-of-face-detector-on-camera:/app
       - /dev:/dev

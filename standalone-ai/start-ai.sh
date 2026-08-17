@@ -8,8 +8,8 @@ echo "UNO Q standalone AI runtime"
 echo
 echo "Checking cached Docker images..."
 
-docker image inspect ghcr.io/arduino/app-bricks/ei-models-runner:0.11.2 >/dev/null
-docker image inspect ghcr.io/arduino/app-bricks/python-apps-base:0.11.0 >/dev/null
+docker image inspect ghcr.io/arduino/app-bricks/ei-models-runner:0.12.1 >/dev/null
+docker image inspect ghcr.io/arduino/app-bricks/python-apps-base:0.12.0 >/dev/null
 
 echo "Cached images found."
 echo
