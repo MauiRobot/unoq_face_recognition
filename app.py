@@ -23,6 +23,7 @@ from flask import (
 
 import config
 from gpio_output import GPIOOutput
+from relay_output import RelayOutput
 from recognition import (
     FaceRecognitionEngine,
     LABELS_FILE,
@@ -36,6 +37,7 @@ from recognition import (
 
 GPIO_TEST_LINE = 41
 GPIO_PULSE_SECONDS = 5.0
+RELAY_PULSE_SECONDS = 5.0
 TRIGGER_COOLDOWN_SECONDS = 15.0
 
 SNAPSHOT_LIMIT_PER_CATEGORY = 100
@@ -106,6 +108,7 @@ ai_enrollment: dict[str, object] = {
 }
 
 gpio_output: GPIOOutput | None = None
+relay_output: RelayOutput | None = None
 
 
 # ----------------------------------------------------------------------
@@ -677,6 +680,12 @@ def trigger_action_if_ready(
         if gpio_output is not None:
             gpio_output.pulse_authorized(
                 GPIO_PULSE_SECONDS
+            )
+
+        # Milestone 7.4 Stage 2 - MCU D9 relay
+        if relay_output is not None:
+            relay_output.pulse(
+                RELAY_PULSE_SECONDS
             )
     else:
         add_event("Unknown face trigger")
@@ -1779,6 +1788,9 @@ def shutdown():
     if gpio_output is not None:
         gpio_output.close()
 
+    if relay_output is not None:
+        relay_output.close()
+
 
 if __name__ == "__main__":
     add_event(
@@ -1794,6 +1806,11 @@ if __name__ == "__main__":
         heartbeat_enabled=True,
         heartbeat_period_seconds=2.0,
         heartbeat_on_seconds=0.15,
+    )
+
+    relay_output = RelayOutput(
+        event_callback=add_event,
+        pulse_seconds=RELAY_PULSE_SECONDS,
     )
 
     load_recognition_model()
