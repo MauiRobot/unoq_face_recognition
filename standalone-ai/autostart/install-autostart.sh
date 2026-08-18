@@ -16,8 +16,8 @@ test -f "${PROJECT_DIR}/app.py" || { echo "ERROR: app.py missing."; exit 1; }
 test -x "${PROJECT_DIR}/standalone-ai/start-ai.sh" || { echo "ERROR: start-ai.sh missing/not executable."; exit 1; }
 test -x "${PROJECT_DIR}/standalone-ai/stop-ai.sh" || { echo "ERROR: stop-ai.sh missing/not executable."; exit 1; }
 
-docker image inspect ghcr.io/arduino/app-bricks/ei-models-runner:0.11.2 >/dev/null
-docker image inspect ghcr.io/arduino/app-bricks/python-apps-base:0.11.0 >/dev/null
+docker image inspect ghcr.io/arduino/app-bricks/ei-models-runner:0.12.1 >/dev/null
+docker image inspect ghcr.io/arduino/app-bricks/python-apps-base:0.12.0 >/dev/null
 
 echo "Required files and cached Docker images found."
 
@@ -29,12 +29,12 @@ sudo systemctl enable "${FLASK_SERVICE}"
 sudo systemctl enable "${AI_SERVICE}"
 
 echo
-echo "Starting Flask service..."
-sudo systemctl restart "${FLASK_SERVICE}"
-sleep 5
-
 echo "Starting standalone AI service..."
 sudo systemctl restart "${AI_SERVICE}"
+sleep 8
+
+echo "Starting Flask service..."
+sudo systemctl restart "${FLASK_SERVICE}"
 
 echo
 echo "Installed and started."

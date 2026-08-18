@@ -1,16 +1,19 @@
 [Unit]
 Description=UNO Q Face Recognition Flask Application
-After=network-online.target docker.service
-Wants=network-online.target
-Requires=docker.service
+After=network-online.target docker.service arduino-router.service unoq-face-ai.service
+Wants=network-online.target arduino-router.service
+Requires=docker.service unoq-face-ai.service
 
 [Service]
 Type=simple
 User=arduino
 Group=arduino
 WorkingDirectory=/home/arduino/unoq_face_recognition
+
 Environment=PYTHONUNBUFFERED=1
+
 ExecStart=/home/arduino/unoq_face_recognition/.venv/bin/python /home/arduino/unoq_face_recognition/app.py
+
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=15
