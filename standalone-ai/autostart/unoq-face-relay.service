@@ -10,9 +10,9 @@ Type=oneshot
 User=arduino
 Group=arduino
 Environment=HOME=/home/arduino
-WorkingDirectory=/home/arduino/ArduinoApps/unoq-face-relay
+WorkingDirectory=/home/arduino/unoq_face_recognition/mcu-relay
 
-ExecStart=/usr/bin/arduino-app-cli app start /home/arduino/ArduinoApps/unoq-face-relay
+ExecStart=/usr/bin/arduino-app-cli app start /home/arduino/unoq_face_recognition/mcu-relay
 
 RemainAfterExit=yes
 TimeoutStartSec=180
